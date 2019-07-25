@@ -119,17 +119,13 @@
   (unless (slot-boundp schema 'properties)
     (return-from coerce-data value))
 
-  (loop for (key . field-value) in value
-        for prop = (find key (slot-value schema 'properties)
-                         :key (lambda (x) (slot-value x 'name))
-                         :test #'equal)
-        collect
-        (progn
-          (unless prop
-            (error 'validation-failed
-                   :value value
-                   :schema schema
-                   :message (format nil "Undefined property: ~S" key)))
+  (loop for prop in (slot-value schema 'properties)
+        for (key . field-value) = (find (slot-value prop 'name)
+                                        value
+                                        :key #'car
+                                        :test #'equal)
+        when key
+          collect
           (cons key
                 (if field-value
                     (handler-case (coerce-data field-value (slot-value prop 'type))
@@ -140,4 +136,4 @@
                                :message (format nil "Validation failed at ~S:~%  ~S"
                                                 key
                                                 (slot-value e 'message)))))
-                    nil)))))
+                    nil))))

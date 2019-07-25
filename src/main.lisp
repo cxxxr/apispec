@@ -3,4 +3,5 @@
   (:mix #:cl)
   (:mix-reexport #:apispec/schema
                  #:apispec/coerce
-                 #:apispec/validate))
+                 #:apispec/validate
+                 #:apispec/encode))

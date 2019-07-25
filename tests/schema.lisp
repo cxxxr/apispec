@@ -57,6 +57,11 @@
   (ok (typep (schema (object ())) 'object))
   (ok (typep (schema (object (("name" string)))) 'object))
   (ok (typep (schema (object (("name" string)) :required '("name"))) 'object))
+  (ok (typep (schema (object
+                      (("name" string)
+                       ("terminal" (object
+                                    (("id" integer)
+                                     ("name" string))))))) 'object))
   (testing "nullable"
     (let ((schema (schema (or object null))))
       (ok (typep schema 'object))

@@ -271,7 +271,9 @@
                       (apply #'make-instance 'property
                              :name field-name
                              :type
-                             (apply #'make-instance (find-schema field-type) field-args)
+                             (if field-args
+                                 (apply #'make-schema field-type (first field-args) (rest field-args))
+                                 (make-instance (find-schema field-type)))
                              args))))
                  fields)
          options))
