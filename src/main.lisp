@@ -2,4 +2,5 @@
     (:nicknames #:apispec/main)
   (:mix #:cl)
   (:mix-reexport #:apispec/schema
-                 #:apispec/coerce))
+                 #:apispec/coerce
+                 #:apispec/validate))

@@ -1,6 +1,7 @@
 (defpackage #:apispec/coerce
   (:use #:cl
         #:apispec/schema
+        #:apispec/validate
         #:parse-number)
   (:shadowing-import-from #:apispec/schema
                           #:number
@@ -30,7 +31,11 @@
   (:method (value (schema schema))
     (error 'coerce-failed
            :value value
-           :schema schema)))
+           :schema schema))
+  (:method :around (value (schema schema))
+    (let ((result (call-next-method)))
+      (validate-data result schema)
+      result)))
 
 ;;
 ;; Number Types
