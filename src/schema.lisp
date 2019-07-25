@@ -136,6 +136,13 @@
    (pattern :type cl:string
             :initarg :pattern)))
 
+(defmethod initialize-instance ((object string) &rest initargs
+                                &key max-length min-length &allow-other-keys)
+  (declare (ignore initargs))
+  (when (and min-length max-length)
+    (assert (<= min-length max-length)))
+  (call-next-method))
+
 (defun make-string-schema (class &rest initargs)
   (apply #'make-instance (find-schema class)
          (match initargs
@@ -272,9 +279,9 @@
                          ,@options)))
         (otherwise
          `(make-schema ',type
+                       ,@args
                        ,@(and is-nullable
-                              '(:nullable t))
-                       ,@args))))))
+                              '(:nullable t))))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim `(optimize ,*previous-safety*)))
