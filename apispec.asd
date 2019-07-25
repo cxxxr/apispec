@@ -14,5 +14,6 @@
   :pathname "tests"
   :components
   ((:file "schema")
+   (:file "coerce")
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c)))
