@@ -20,7 +20,13 @@
                           #:pattern
                           #:min-items
                           #:max-items
-                          #:unique-items)
+                          #:unique-items
+                          #:required
+                          #:properties
+                          #:min-properties
+                          #:max-properties
+                          #:type
+                          #:nullable)
   (:import-from #:cl-ppcre)
   (:export #:validation-failed
            #:validate-data))
@@ -145,3 +151,56 @@
              :value value
              :schema schema
              :message "The items are not unique"))))
+
+
+;;
+;; Object Type
+
+(defmethod validate-data (value (schema object))
+  (loop for (key . field-value) in value
+        for prop = (find key (slot-value schema 'properties)
+                         :key (lambda (x) (slot-value x 'name))
+                         :test #'equal)
+        do (unless prop
+             (error 'validation-failed
+                    :value value
+                    :schema schema
+                    :message (format nil "Undefined property: ~S" key)))
+           (if field-value
+               (handler-case (validate-data field-value (slot-value prop 'type))
+                 (validation-failed (e)
+                   (error 'validation-failed
+                          :value value
+                          :schema schema
+                          :message (format nil "Validation failed at ~S:~%  ~S"
+                                           key
+                                           (slot-value e 'message)))))
+               (unless (and (slot-boundp prop 'nullable)
+                            (slot-value prop 'nullable))
+                 (error 'validation-failed
+                        :value value
+                        :schema schema
+                        :message (format nil "~S is not nullable" key)))))
+  (loop for key in (and (slot-boundp schema 'required)
+                        (slot-value schema 'required))
+        unless (find key value :key #'car :test #'equal)
+          collect key into missing-keys
+        finally
+           (error 'validation-failed
+                  :value value
+                  :schema schema
+                  :message (format nil "Missing required keys: ~S" missing-keys)))
+  (unless (and (or (not (slot-boundp schema 'min-properties))
+                   (nthcdr (slot-value schema 'min-properties) value))
+               (or (not (slot-boundp schema 'max-properties))
+                   (nthcdr (slot-value schema 'max-properties) value)))
+    (error 'validation-failed
+           :value value
+           :schema schema
+           :message
+           (format nil "The number of properties has to be in the range of~@[ ~A <=~] (length properties)~@[ <= ~A~]"
+                   (and (slot-boundp schema 'min-properties)
+                        (slot-value schema 'min-properties))
+                   (and (slot-boundp schema 'max-properties)
+                        (slot-value schema 'max-properties)))))
+  t)

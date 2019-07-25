@@ -16,8 +16,10 @@
 
 (deftest coerce-string-tests
   (ok (equal (coerce-data "a" 'string) "a"))
-  (ok (equal (coerce-data #\a 'string) "a"))
-  (ok (equal (coerce-data 1 'string) "1"))
+  (ok (signals (coerce-data #\a 'string)
+          'coerce-failed))
+  (ok (signals (coerce-data 1 'string)
+          'coerce-failed))
   (let ((date (coerce-data "2019-04-15" 'date)))
     (ok (typep date 'local-time:timestamp))
     (ok (= (local-time:timestamp-year date) 2019))

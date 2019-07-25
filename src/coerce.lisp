@@ -12,7 +12,11 @@
                           #:boolean
                           #:array
 
-                          #:items)
+                          #:items
+                          #:properties
+                          #:name
+                          #:type
+                          #:nullable)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
@@ -63,16 +67,16 @@
 ;;
 ;; String Types
 
-(defmethod coerce-data (value (schema string))
+(defmethod coerce-data ((value cl:string) (schema string))
   (princ-to-string value))
 
-(defmethod coerce-data (value (schema date))
+(defmethod coerce-data ((value cl:string) (schema date))
   (check-type value cl:string)
   (ppcre:register-groups-bind ((#'parse-integer year month date))
       ("(\\d{4})-(\\d{2})-(\\d{2})" value)
     (local-time:universal-to-timestamp (encode-universal-time 0 0 0 date month year))))
 
-(defmethod coerce-data (value (schema date-time))
+(defmethod coerce-data ((value cl:string) (schema date-time))
   (check-type value cl:string)
   (local-time:parse-rfc3339-timestring value))
 
@@ -96,3 +100,31 @@
              (coerce-data item (slot-value schema 'items)))
            value)
       (coerce value 'vector)))
+
+
+;;
+;; Object Type
+
+(defmethod coerce-data (value (schema object))
+  (loop for (key . field-value) in value
+        for prop = (find key (slot-value schema 'properties)
+                         :key (lambda (x) (slot-value x 'name))
+                         :test #'equal)
+        collect
+        (progn
+          (unless prop
+            (error 'validation-failed
+                   :value value
+                   :schema schema
+                   :message (format nil "Undefined property: ~S" key)))
+          (cons key
+                (if field-value
+                    (handler-case (coerce-data field-value (slot-value prop 'type))
+                      (validation-failed (e)
+                        (error 'validation-failed
+                               :value value
+                               :schema schema
+                               :message (format nil "Validation failed at ~S:~%  ~S"
+                                                key
+                                                (slot-value e 'message)))))
+                    nil)))))

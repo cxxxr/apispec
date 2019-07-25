@@ -245,6 +245,19 @@
    (min-properties :type (cl:integer 0)
                    :initarg :min-properties)))
 
+(defmethod initialize-instance ((object object) &rest initargs
+                                &key min-properties max-properties required properties &allow-other-keys)
+  (when (and min-properties max-properties)
+    (assert (<= min-properties max-properties)))
+
+  (dolist (prop-name required)
+    (unless (find prop-name properties
+                  :key (lambda (x) (slot-value x 'name))
+                  :test #'equal)
+      (error "Unknown property ~S in :required" prop-name)))
+
+  (apply #'call-next-method object initargs))
+
 (defun make-object-schema (class fields &rest options)
   (apply #'make-instance (find-schema class)
          :properties
