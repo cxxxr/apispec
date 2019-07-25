@@ -277,9 +277,11 @@
          options))
 
 (defmethod make-schema ((class (eql 'object)) &rest initargs)
-  (ematch initargs
-    ((list* (list* fields) options)
-     (apply #'make-object-schema class fields options))))
+  (if initargs
+      (ematch initargs
+        ((list* (list* fields) options)
+         (apply #'make-object-schema class fields options)))
+      (make-instance (find-schema class))))
 
 (defun expand-nullable (type-specifier)
   (match type-specifier

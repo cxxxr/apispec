@@ -25,6 +25,7 @@
                           #:properties
                           #:min-properties
                           #:max-properties
+                          #:name
                           #:type
                           #:nullable)
   (:import-from #:cl-ppcre)
@@ -157,6 +158,9 @@
 ;; Object Type
 
 (defmethod validate-data (value (schema object))
+  (unless (slot-boundp schema 'properties)
+    (return-from validate-data value))
+
   (loop for (key . field-value) in value
         for prop = (find key (slot-value schema 'properties)
                          :key (lambda (x) (slot-value x 'name))
@@ -186,10 +190,11 @@
         unless (find key value :key #'car :test #'equal)
           collect key into missing-keys
         finally
-           (error 'validation-failed
-                  :value value
-                  :schema schema
-                  :message (format nil "Missing required keys: ~S" missing-keys)))
+           (when missing-keys
+             (error 'validation-failed
+                    :value value
+                    :schema schema
+                    :message (format nil "Missing required keys: ~S" missing-keys))))
   (unless (and (or (not (slot-boundp schema 'min-properties))
                    (nthcdr (slot-value schema 'min-properties) value))
                (or (not (slot-boundp schema 'max-properties))

@@ -1,7 +1,9 @@
 (defpackage #:apispec/utils
   (:use #:cl)
   (:export #:proper-list-p
-           #:proper-list))
+           #:proper-list
+           #:association-list-p
+           #:association-list))
 (in-package #:apispec/utils)
 
 (defun proper-list-p (object &optional (element-type t))
@@ -25,3 +27,13 @@
                       (setf (gethash element-type *proper-list-type-checker*)
                             fn))))))
     `(satisfies ,fn)))
+
+(defun association-list-p (value)
+  (and (listp value)
+       (every (lambda (pair)
+                (and (consp pair)
+                     (typep (car pair) '(or symbol string))))
+              value)))
+
+(deftype association-list ()
+  '(satisfies association-list-p))

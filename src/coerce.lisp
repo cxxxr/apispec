@@ -2,6 +2,7 @@
   (:use #:cl
         #:apispec/schema
         #:apispec/validate
+        #:apispec/utils
         #:parse-number)
   (:shadowing-import-from #:apispec/schema
                           #:number
@@ -16,7 +17,9 @@
                           #:properties
                           #:name
                           #:type
-                          #:nullable)
+                          #:nullable
+
+                          #:parse-schema-definition)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
@@ -35,6 +38,11 @@
 (defgeneric coerce-data (value schema)
   (:method (value (schema symbol))
     (coerce-data value (make-schema schema)))
+  (:method (value (schema cons))
+    (coerce-data value
+                 (multiple-value-bind (type args)
+                     (parse-schema-definition schema)
+                   (apply #'make-schema type args))))
   (:method (value (schema schema))
     (error 'coerce-failed
            :value value
@@ -106,6 +114,11 @@
 ;; Object Type
 
 (defmethod coerce-data (value (schema object))
+  (check-type value association-list)
+
+  (unless (slot-boundp schema 'properties)
+    (return-from coerce-data value))
+
   (loop for (key . field-value) in value
         for prop = (find key (slot-value schema 'properties)
                          :key (lambda (x) (slot-value x 'name))

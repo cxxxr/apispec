@@ -2,6 +2,7 @@
   (:use #:cl
         #:apispec/coerce
         #:apispec/schema
+        #:apispec/validate
         #:rove)
   (:import-from #:local-time))
 (in-package #:apispec/tests/coerce)
@@ -40,3 +41,30 @@
   (ok (eq (coerce-data "false" 'boolean) nil))
   (ok (eq (coerce-data t 'boolean) t))
   (ok (eq (coerce-data nil 'boolean) nil)))
+
+(deftest coerce-array-tests
+  (ok (equalp (coerce-data '(1 2 3) 'array)
+              #(1 2 3)))
+  (ok (equalp (coerce-data '() 'array)
+              #()))
+  (ok (signals (coerce-data '(1 2 3) '(array 10))
+          'validation-failed))
+  (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
+              #(1 -2 3))))
+
+(deftest coerce-object-tests
+  (ok (equalp (coerce-data '(("name" . "fukamachi")) 'object)
+              '(("name" . "fukamachi"))))
+  (ok (equalp (coerce-data '(("name" . "fukamachi")) '(object
+                                                       (("name" string))))
+              '(("name" . "fukamachi"))))
+  (ok (signals (coerce-data '(("name" . 1)) '(object
+                                              (("name" string))))
+          'coerce-failed))
+  (ok (equalp (coerce-data '() '(object
+                                 (("name" string))))
+              '()))
+  (ok (signals (coerce-data '() '(object
+                                  (("name" string))
+                                  :required ("name")))
+          'validation-failed)))
