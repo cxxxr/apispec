@@ -8,6 +8,7 @@
                           #:integer
                           #:string
                           #:boolean
+                          #:array
 
                           #:multiple-of
                           #:maximum
@@ -16,7 +17,10 @@
                           #:exclusive-minimum
                           #:max-length
                           #:min-length
-                          #:pattern)
+                          #:pattern
+                          #:min-items
+                          #:max-items
+                          #:unique-items)
   (:import-from #:cl-ppcre)
   (:export #:validation-failed
            #:validate-data))
@@ -114,3 +118,30 @@
                             (slot-value schema 'pattern))))
 
   t)
+
+
+;;
+;; Array Type
+
+(defmethod validate-data (value (schema array))
+  (unless (and (or (not (slot-boundp schema 'min-items))
+                   (<= (slot-value schema 'min-items) (length value)))
+               (or (not (slot-boundp schema 'max-items))
+                   (<= (length value) (slot-value schema 'max-items))))
+    (error 'validation-failed
+           :value value
+           :schema schema
+           :message (format nil "The length not in the range~@[ from ~A~]~@[ to ~A~]"
+                            (and (slot-boundp schema 'min-items)
+                                 (slot-value schema 'min-items))
+                            (and (slot-boundp schema 'max-items)
+                                 (slot-value schema 'max-items)))))
+
+  (when (and (slot-boundp schema 'unique-items)
+             (slot-value schema 'unique-items))
+    (unless (= (length (remove-duplicates value :test #'equal))
+               (length value))
+      (error 'validation-failed
+             :value value
+             :schema schema
+             :message "The items are not unique"))))

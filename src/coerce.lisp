@@ -9,7 +9,10 @@
                           #:double
                           #:integer
                           #:string
-                          #:boolean)
+                          #:boolean
+                          #:array
+
+                          #:items)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
@@ -81,3 +84,15 @@
        ((equal value "false") nil)
        (t (error 'coerce-failed :value value :schema schema))))
     (cl:boolean value)))
+
+
+;;
+;; Array Type
+
+(defmethod coerce-data (value (schema array))
+  (if (slot-boundp schema 'items)
+      (map 'vector
+           (lambda (item)
+             (coerce-data item (slot-value schema 'items)))
+           value)
+      (coerce value 'vector)))

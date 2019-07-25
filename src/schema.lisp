@@ -195,6 +195,20 @@
    (unique-items :type cl:boolean
                  :initarg :unique-items)))
 
+(declaim (ftype (function (t) t) parse-schema-definition))
+
+(defmethod initialize-instance ((object array) &rest initargs
+                                &key items max-items min-items &allow-other-keys)
+  (when (and min-items max-items)
+    (assert (<= min-items max-items)))
+  (unless (or (null items)
+              (typep items 'schema))
+    (setf (getf initargs :items)
+          (multiple-value-bind (type args)
+              (parse-schema-definition items)
+            (apply #'make-schema type args))))
+  (apply #'call-next-method object initargs))
+
 (defun make-array-schema (class &rest initargs)
   (apply #'make-instance (find-schema class)
          (match initargs
@@ -264,7 +278,7 @@
      (values (ensure-cons type-specifier)
              nil))))
 
-(defmacro schema (schema-definition)
+(defun parse-schema-definition (schema-definition)
   (multiple-value-bind (schema-definition is-nullable)
       (expand-nullable schema-definition)
     (destructuring-bind (type &rest args)
@@ -273,15 +287,25 @@
         (object
          (destructuring-bind (fields &rest options)
              (ensure-cons args)
-           `(make-schema ',type ',fields
-                         ,@(and is-nullable
-                                '(:nullable t))
-                         ,@options)))
+           (values type
+                   (cons fields
+                         (append (and is-nullable
+                                      '(:nullable t))
+                                 options)))))
         (otherwise
-         `(make-schema ',type
-                       ,@args
-                       ,@(and is-nullable
-                              '(:nullable t))))))))
+         (values type
+                 (append args
+                         (and is-nullable
+                              '(:nullable t)))))))))
+
+(defmacro schema (schema-definition)
+  (multiple-value-bind (type args)
+      (parse-schema-definition schema-definition)
+    (case type
+      (object
+       `(make-schema ',type ',(first args) ,@(rest args)))
+      (otherwise
+       `(make-schema ',type ,@args)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim `(optimize ,*previous-safety*)))
