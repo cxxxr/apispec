@@ -107,3 +107,11 @@
                               :additional-properties (or date null)))
                '(("name" . "fukamachi")
                  ("created-at" . nil))))))
+
+(deftest coerce-default-tests
+  (ok (equal (coerce-data nil '(string :default "none"))
+             "none"))
+  (ok (equal (coerce-data '()
+                          '(object
+                            (("name" (string :default "nobody")))))
+             '(("name" . "nobody")))))

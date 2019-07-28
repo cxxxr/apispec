@@ -16,6 +16,7 @@
                           #:items
                           #:name
                           #:type
+                          #:default
 
                           #:parse-schema-definition)
   (:import-from #:cl-ppcre)
@@ -49,7 +50,11 @@
              :value value
              :schema schema)))
   (:method :around (value (schema schema))
-    (let ((result (call-next-method)))
+    (let ((result (if (and (null value)
+                           (slot-boundp schema 'default)
+                           (slot-value schema 'default))
+                      (coerce-data (slot-value schema 'default) schema)
+                      (call-next-method))))
       (validate-data result schema)
       result)))
 
@@ -117,32 +122,43 @@
 (defmethod coerce-data (value (schema object))
   (check-type value association-list)
 
-  (loop with additional-properties = (object-additional-properties schema)
-        with properties = (object-properties schema)
-        for (key . field-value) in value
-        for prop = (find key properties
-                         :key (lambda (prop) (slot-value prop 'name))
-                         :test #'equal)
-        collect
-        (cons key
-              (cond
-                ((or prop
-                     (typep additional-properties 'schema))
-                 (handler-case (coerce-data field-value (if prop
-                                                            (slot-value prop 'type)
-                                                            additional-properties))
-                   (validation-failed (e)
-                     (error 'validation-failed
-                            :value value
-                            :schema schema
-                            :message (format nil "Validation failed at ~S:~%  ~S"
-                                             key
-                                             (slot-value e 'message))))))
-                ((not additional-properties)
-                 (error 'validation-failed
-                        :value value
-                        :schema schema
-                        :message (format nil "Unpermitted property: ~S" key)))
-                ((eq additional-properties t)
-                 field-value)
-                (t (error "Not allowed branch. Perhaps a bug of apispec."))))))
+  (let ((properties (object-properties schema)))
+    (nconc
+     (loop with additional-properties = (object-additional-properties schema)
+           for (key . field-value) in value
+           for prop = (find key properties
+                            :key (lambda (prop) (slot-value prop 'name))
+                            :test #'equal)
+           collect
+           (cons key
+                 (cond
+                   ((or prop
+                        (typep additional-properties 'schema))
+                    (handler-case (coerce-data field-value (if prop
+                                                               (slot-value prop 'type)
+                                                               additional-properties))
+                      (validation-failed (e)
+                        (error 'validation-failed
+                               :value value
+                               :schema schema
+                               :message (format nil "Validation failed at ~S:~%  ~S"
+                                                key
+                                                (slot-value e 'message))))))
+                   ((not additional-properties)
+                    (error 'validation-failed
+                           :value value
+                           :schema schema
+                           :message (format nil "Unpermitted property: ~S" key)))
+                   ((eq additional-properties t)
+                    field-value)
+                   (t (error "Not allowed branch. Perhaps a bug of apispec.")))))
+     (loop for prop in properties
+           for type = (slot-value prop 'type)
+           when (and (slot-boundp type 'default)
+                     (not (find (slot-value prop 'name)
+                                value
+                                :key #'car
+                                :test #'equal)))
+             collect
+             (cons (slot-value prop 'name)
+                   (slot-value type 'default))))))
