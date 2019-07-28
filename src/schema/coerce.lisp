@@ -1,10 +1,10 @@
-(defpackage #:apispec/coerce
+(defpackage #:apispec/schema/coerce
   (:use #:cl
-        #:apispec/schema
-        #:apispec/validate
+        #:apispec/schema/core
+        #:apispec/schema/validate
         #:apispec/utils
         #:parse-number)
-  (:shadowing-import-from #:apispec/schema
+  (:shadowing-import-from #:apispec/schema/core
                           #:number
                           #:float
                           #:double
@@ -16,14 +16,13 @@
                           #:items
                           #:name
                           #:type
-                          #:nullable
 
                           #:parse-schema-definition)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
            #:coerce-data))
-(in-package #:apispec/coerce)
+(in-package #:apispec/schema/coerce)
 
 (define-condition coerce-failed (error)
   ((value :initarg :value)

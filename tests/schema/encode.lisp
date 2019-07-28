@@ -1,9 +1,9 @@
-(defpackage #:apispec/tests/encode
+(defpackage #:apispec/tests/schema/encode
   (:use #:cl
-        #:apispec/encode
-        #:apispec/schema
+        #:apispec/schema/encode
+        #:apispec/schema/core
         #:rove))
-(in-package #:apispec/tests/encode)
+(in-package #:apispec/tests/schema/encode)
 
 (deftest encode-object-tests
   (ok (equal

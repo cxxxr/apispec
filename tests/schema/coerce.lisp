@@ -1,13 +1,13 @@
-(defpackage #:apispec/tests/coerce
+(defpackage #:apispec/tests/schema/coerce
   (:use #:cl
-        #:apispec/coerce
-        #:apispec/schema
-        #:apispec/validate
+        #:apispec/schema/coerce
+        #:apispec/schema/core
+        #:apispec/schema/validate
         #:rove)
   (:import-from #:local-time
                 #:timestamp=
                 #:universal-to-timestamp))
-(in-package #:apispec/tests/coerce)
+(in-package #:apispec/tests/schema/coerce)
 
 (defun aget (alist key)
   (cdr (assoc key alist :test 'equal)))

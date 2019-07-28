@@ -1,7 +1,7 @@
-(defpackage #:apispec/encode
+(defpackage #:apispec/schema/encode
   (:use #:cl
-        #:apispec/schema)
-  (:shadowing-import-from #:apispec/schema
+        #:apispec/schema/core)
+  (:shadowing-import-from #:apispec/schema/core
                           #:number
                           #:boolean
                           #:name
@@ -10,15 +10,15 @@
                           #:parse-schema-definition)
   (:import-from #:jonathan)
   (:export #:encode-data))
-(in-package #:apispec/encode)
+(in-package #:apispec/schema/encode)
 
 (defgeneric encode-data (value schema)
   (:method (value schema)
     (jojo:%to-json (if (and (null value)
-                                 (slot-boundp schema 'nullable)
-                                 (slot-value schema 'nullable))
-                            :null
-                            value)))
+                            (slot-boundp schema 'nullable)
+                            (slot-value schema 'nullable))
+                       :null
+                       value)))
   (:method (value (schema symbol))
     (encode-data value (make-schema schema)))
   (:method (value (schema cons))

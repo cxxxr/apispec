@@ -1,7 +1,7 @@
-(defpackage #:apispec/validate
+(defpackage #:apispec/schema/validate
   (:use #:cl
-        #:apispec/schema)
-  (:shadowing-import-from #:apispec/schema
+        #:apispec/schema/core)
+  (:shadowing-import-from #:apispec/schema/core
                           #:number
                           #:float
                           #:double
@@ -30,7 +30,7 @@
   (:import-from #:cl-ppcre)
   (:export #:validation-failed
            #:validate-data))
-(in-package #:apispec/validate)
+(in-package #:apispec/schema/validate)
 
 (define-condition validation-failed (error)
   ((value :initarg :value)
