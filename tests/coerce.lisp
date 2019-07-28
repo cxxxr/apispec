@@ -4,8 +4,13 @@
         #:apispec/schema
         #:apispec/validate
         #:rove)
-  (:import-from #:local-time))
+  (:import-from #:local-time
+                #:timestamp=
+                #:universal-to-timestamp))
 (in-package #:apispec/tests/coerce)
+
+(defun aget (alist key)
+  (cdr (assoc key alist :test 'equal)))
 
 (deftest coerce-number-tests
   (ok (eql (coerce-data 1 'number) 1))
@@ -61,10 +66,44 @@
   (ok (signals (coerce-data '(("name" . 1)) '(object
                                               (("name" string))))
           'coerce-failed))
-  (ok (equalp (coerce-data '() '(object
-                                 (("name" string))))
-              '()))
-  (ok (signals (coerce-data '() '(object
-                                  (("name" string))
-                                  :required ("name")))
-          'validation-failed)))
+  (ok (equalp (coerce-data '(("hi" . "all"))
+                           '(object
+                             (("name" string))))
+              '(("hi" . "all"))))
+  (ok (signals (coerce-data '(("hi" . "all"))
+                            '(object
+                              (("name" string))
+                              :required ("name")))
+          'validation-failed))
+
+  (testing "additionalProperties"
+    (ok (equal (coerce-data '(("name" . "fukamachi")
+                              ("created-at" . "2019-04-30"))
+                            '(object
+                              (("name" string))
+                              :additional-properties t))
+               '(("name" . "fukamachi")
+                 ("created-at" . "2019-04-30"))))
+    (ok (signals (coerce-data '(("name" . "fukamachi")
+                                ("created-at" . "2019-04-30"))
+                              '(object
+                                (("name" string))
+                                :additional-properties nil))
+            'validation-failed))
+    (let ((data (coerce-data '(("name" . "fukamachi")
+                               ("created-at" . "2019-04-30"))
+                             '(object
+                               (("name" string))
+                               :additional-properties date))))
+      (ok (equal (aget data "name") "fukamachi"))
+      (ok (timestamp= (aget data "created-at")
+                      (universal-to-timestamp
+                       (encode-universal-time 0 0 0 30 4 2019))))
+      (ok (= (length data) 2)))
+    (ok (equal (coerce-data '(("name" . "fukamachi")
+                              ("created-at" . nil))
+                            '(object
+                              (("name" string))
+                              :additional-properties (or date null)))
+               '(("name" . "fukamachi")
+                 ("created-at" . nil))))))

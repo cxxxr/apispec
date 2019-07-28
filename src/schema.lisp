@@ -35,7 +35,8 @@
            #:email
            #:uuid
            #:object
-           #:object-properties))
+           #:object-properties
+           #:object-additional-properties))
 (in-package #:apispec/schema)
 
 ;; Set safety level 3 for CLOS slot type checking.
@@ -232,11 +233,8 @@
   ((name :type (or cl:symbol cl:string)
          :initarg :name)
    (type :type schema
-         :initarg :type)
-   (nullable :type cl:boolean
-             :initarg :nullable)))
+         :initarg :type)))
 
-;; TODO: additionalProperties
 (defclass object (schema)
   ((type :initform "object")
    (required :type (proper-list (or cl:symbol cl:string))
@@ -248,10 +246,16 @@
    (max-properties :type (cl:integer 0)
                    :initarg :max-properties)
    (min-properties :type (cl:integer 0)
-                   :initarg :min-properties)))
+                   :initarg :min-properties)
+   (additional-properties :type (or cl:boolean schema)
+                          :initarg :additional-properties
+                          :initform t
+                          :reader object-additional-properties)))
 
 (defmethod initialize-instance ((object object) &rest initargs
-                                &key min-properties max-properties required properties &allow-other-keys)
+                                &key min-properties max-properties
+                                  required properties additional-properties
+                                &allow-other-keys)
   (when (and min-properties max-properties)
     (assert (<= min-properties max-properties)))
 
@@ -260,6 +264,13 @@
                   :key (lambda (x) (slot-value x 'name))
                   :test #'equal)
       (error "Unknown property ~S in :required" prop-name)))
+
+  (unless (or (typep additional-properties 'cl:boolean)
+              (typep additional-properties 'schema))
+    (setf (getf initargs :additional-properties)
+          (multiple-value-bind (type args)
+              (parse-schema-definition additional-properties)
+            (apply #'make-schema type args))))
 
   (apply #'call-next-method object initargs))
 

@@ -47,6 +47,15 @@
 (defgeneric validate-data (value schema)
   (:method (value (schema symbol))
     (validate-data value (make-schema schema)))
+  (:method :around ((value null) (schema schema))
+    (unless (or (typep schema 'boolean)  ;; BOOLEAN can be NIL
+                (and (slot-boundp schema 'nullable)
+                     (slot-value schema 'nullable)))
+      (error 'validation-failed
+             :value value
+             :schema schema
+             :message "Not nullable"))
+    t)
   (:method (value (schema schema))
     t))
 
@@ -164,12 +173,7 @@
         for prop = (find key (object-properties schema)
                          :key (lambda (x) (slot-value x 'name))
                          :test #'equal)
-        do (unless prop
-             (error 'validation-failed
-                    :value value
-                    :schema schema
-                    :message (format nil "Undefined property: ~S" key)))
-           (if field-value
+        do (if prop
                (handler-case (validate-data field-value (slot-value prop 'type))
                  (validation-failed (e)
                    (error 'validation-failed
@@ -178,12 +182,14 @@
                           :message (format nil "Validation failed at ~S:~%  ~S"
                                            key
                                            (slot-value e 'message)))))
-               (unless (and (slot-boundp prop 'nullable)
-                            (slot-value prop 'nullable))
-                 (error 'validation-failed
-                        :value value
-                        :schema schema
-                        :message (format nil "~S is not nullable" key)))))
+               (let ((additional-properties (object-additional-properties schema)))
+                 (etypecase additional-properties
+                   (null (error 'validation-failed
+                                :value value
+                                :schema schema
+                                :message (format nil "Undefined property: ~S" key)))
+                   ((eql t))
+                   (schema (validate-data field-value additional-properties))))))
   (loop for key in (and (slot-boundp schema 'required)
                         (slot-value schema 'required))
         unless (find key value :key #'car :test #'equal)

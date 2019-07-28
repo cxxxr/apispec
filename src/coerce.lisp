@@ -42,10 +42,13 @@
                  (multiple-value-bind (type args)
                      (parse-schema-definition schema)
                    (apply #'make-schema type args))))
-  (:method (value (schema schema))
-    (error 'coerce-failed
-           :value value
-           :schema schema))
+  (:method (value schema)
+    ;; Don't raise COERCE-FAILED when the value is NIL.
+    ;; If the schema is not nullable, it'll be catched in VALIDATE-DATA.
+    (when value
+      (error 'coerce-failed
+             :value value
+             :schema schema)))
   (:method :around (value (schema schema))
     (let ((result (call-next-method)))
       (validate-data result schema)
@@ -115,21 +118,32 @@
 (defmethod coerce-data (value (schema object))
   (check-type value association-list)
 
-  (loop for prop in (object-properties schema)
-        for (key . field-value) = (find (slot-value prop 'name)
-                                        value
-                                        :key #'car
-                                        :test #'equal)
-        when key
-          collect
-          (cons key
-                (if field-value
-                    (handler-case (coerce-data field-value (slot-value prop 'type))
-                      (validation-failed (e)
-                        (error 'validation-failed
-                               :value value
-                               :schema schema
-                               :message (format nil "Validation failed at ~S:~%  ~S"
-                                                key
-                                                (slot-value e 'message)))))
-                    nil))))
+  (loop with additional-properties = (object-additional-properties schema)
+        with properties = (object-properties schema)
+        for (key . field-value) in value
+        for prop = (find key properties
+                         :key (lambda (prop) (slot-value prop 'name))
+                         :test #'equal)
+        collect
+        (cons key
+              (cond
+                ((or prop
+                     (typep additional-properties 'schema))
+                 (handler-case (coerce-data field-value (if prop
+                                                            (slot-value prop 'type)
+                                                            additional-properties))
+                   (validation-failed (e)
+                     (error 'validation-failed
+                            :value value
+                            :schema schema
+                            :message (format nil "Validation failed at ~S:~%  ~S"
+                                             key
+                                             (slot-value e 'message))))))
+                ((not additional-properties)
+                 (error 'validation-failed
+                        :value value
+                        :schema schema
+                        :message (format nil "Unpermitted property: ~S" key)))
+                ((eq additional-properties t)
+                 field-value)
+                (t (error "Not allowed branch. Perhaps a bug of apispec."))))))
