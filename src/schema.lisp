@@ -33,7 +33,8 @@
            #:date-time
            #:email
            #:uuid
-           #:object))
+           #:object
+           #:object-properties))
 (in-package #:apispec/schema)
 
 ;; Set safety level 3 for CLOS slot type checking.
@@ -234,12 +235,15 @@
    (nullable :type cl:boolean
              :initarg :nullable)))
 
+;; TODO: additionalProperties
 (defclass object (schema)
   ((type :initform "object")
    (required :type (proper-list (or cl:symbol cl:string))
              :initarg :required)
    (properties :type (proper-list property)
-               :initarg :properties)
+               :initarg :properties
+               :initform nil
+               :reader object-properties)
    (max-properties :type (cl:integer 0)
                    :initarg :max-properties)
    (min-properties :type (cl:integer 0)
@@ -258,24 +262,26 @@
 
   (apply #'call-next-method object initargs))
 
-(defun make-object-schema (class fields &rest options)
+(defun make-properties (properties-definition)
+  (mapcar (lambda (property-definition)
+            (ematch property-definition
+              ((list* property-name
+                      (or (guard property-type (symbolp property-type))
+                          (list* (guard property-type (symbolp property-type))
+                                 property-args))
+                      args)
+               (apply #'make-instance 'property
+                      :name property-name
+                      :type
+                      (if property-args
+                          (apply #'make-schema property-type (first property-args) (rest property-args))
+                          (make-instance (find-schema property-type)))
+                      args))))
+          properties-definition))
+
+(defun make-object-schema (class properties-definition &rest options)
   (apply #'make-instance (find-schema class)
-         :properties
-         (mapcar (lambda (field)
-                   (ematch field
-                     ((list* field-name
-                             (or (guard field-type (symbolp field-type))
-                                 (list* (guard field-type (symbolp field-type))
-                                        field-args))
-                             args)
-                      (apply #'make-instance 'property
-                             :name field-name
-                             :type
-                             (if field-args
-                                 (apply #'make-schema field-type (first field-args) (rest field-args))
-                                 (make-instance (find-schema field-type)))
-                             args))))
-                 fields)
+         :properties (make-properties properties-definition)
          options))
 
 (defmethod make-schema ((class (eql 'object)) &rest initargs)

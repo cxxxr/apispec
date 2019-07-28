@@ -14,7 +14,6 @@
                           #:array
 
                           #:items
-                          #:properties
                           #:name
                           #:type
                           #:nullable
@@ -116,10 +115,7 @@
 (defmethod coerce-data (value (schema object))
   (check-type value association-list)
 
-  (unless (slot-boundp schema 'properties)
-    (return-from coerce-data value))
-
-  (loop for prop in (slot-value schema 'properties)
+  (loop for prop in (object-properties schema)
         for (key . field-value) = (find (slot-value prop 'name)
                                         value
                                         :key #'car

@@ -22,7 +22,6 @@
                           #:max-items
                           #:unique-items
                           #:required
-                          #:properties
                           #:min-properties
                           #:max-properties
                           #:name
@@ -158,11 +157,11 @@
 ;; Object Type
 
 (defmethod validate-data (value (schema object))
-  (unless (slot-boundp schema 'properties)
+  (unless (object-properties schema)
     (return-from validate-data value))
 
   (loop for (key . field-value) in value
-        for prop = (find key (slot-value schema 'properties)
+        for prop = (find key (object-properties schema)
                          :key (lambda (x) (slot-value x 'name))
                          :test #'equal)
         do (unless prop

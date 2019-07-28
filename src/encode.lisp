@@ -4,7 +4,6 @@
   (:shadowing-import-from #:apispec/schema
                           #:number
                           #:boolean
-                          #:properties
                           #:name
                           #:type
                           #:nullable
@@ -35,7 +34,7 @@
 
 (defmethod encode-data (value (schema object))
   (jojo:with-object
-    (loop for prop in (slot-value schema 'properties)
+    (loop for prop in (object-properties schema)
           for (key . field-value) = (find (slot-value prop 'name)
                                           value
                                           :key #'car
