@@ -17,6 +17,7 @@
                 #:ensure-cons)
   (:export #:schema
            #:make-schema
+           #:defschema
 
            ;; Don't export because these conflicts with :cl
            ;#:number
@@ -329,6 +330,17 @@
        `(make-schema ',type ',(first args) ,@(rest args)))
       (otherwise
        `(make-schema ',type ,@args)))))
+
+(defmacro defschema (name (&optional (superclass 'object)) &body initargs)
+  ;; Allow to omit the first ':properties' key.
+  (when (consp (first initargs))
+    (setf initargs
+          (append
+           `(:properties (make-properties ',(first initargs)))
+           (rest initargs))))
+  `(defclass ,name (,superclass)
+     ()
+     (:default-initargs ,@initargs)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (proclaim `(optimize ,*previous-safety*)))
