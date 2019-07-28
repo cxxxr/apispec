@@ -18,5 +18,6 @@
     ((:file "core")
      (:file "coerce")
      (:file "encode")))
+   (:file "parameter")
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c)))
