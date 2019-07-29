@@ -12,7 +12,8 @@
   (:import-from #:assoc-utils
                 #:aget)
   (:export #:parameter
-           #:parse-value))
+           #:parse-value
+           #:parse-failed))
 (in-package #:apispec/parameter)
 
 ;; Set safety level 3 for CLOS slot type checking.
@@ -21,6 +22,13 @@
     (or (assoc 'safety (declaration-information 'optimize))
         '(safety 1)))
   (proclaim '(optimize safety)))
+
+(define-condition parse-failed (error)
+  ((message :initarg :message
+            :initform nil))
+  (:report (lambda (condition stream)
+             (with-slots (message) condition
+               (princ message stream)))))
 
 (defun parameter-in-string-p (in)
   (and (member in '("path" "query" "header" "cookie")
@@ -191,7 +199,8 @@
        (loop for (k v) on values by #'cddr
              collect (cons k v)))
       (otherwise
-       (error "~S can't be type '~A'" value (type-of as))))))
+       (error 'parse-failed
+              :message (format nil "~S can't be type '~A'" value (type-of as)))))))
 
 (defun parse-space-delimited-value (value &key as)
   (%parse-delimited-value "%20" value :as as))
@@ -254,7 +263,8 @@
               (t
                (error "Unexpected style: ~S" style)))))
       (if (eq result empty)
-          (error "Missing parameter: ~S" name)
+          (error 'parse-failed
+                 :message (format nil "Missing parameter: ~S" name))
           (coerce-data result (slot-value parameter 'schema))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
