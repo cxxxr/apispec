@@ -1,7 +1,7 @@
-(defpackage #:apispec/encoding/parse
+(defpackage #:apispec/request/encoding/parse
   (:use #:cl
         #:cl-utilities)
-  (:import-from #:apispec/encoding/core
+  (:import-from #:apispec/request/encoding/core
                 #:media-type
                 #:media-type-encoding
                 #:media-type-schema
@@ -24,10 +24,9 @@
                 #:starts-with-subseq)
   (:import-from #:assoc-utils
                 #:aget)
-  (:export #:parse-failed
-           #:parse-complex-string
-           #:parse-value))
-(in-package #:apispec/encoding/parse)
+  (:export #:parse-complex-string
+           #:parse-with-media-type))
+(in-package #:apispec/request/encoding/parse)
 
 (define-condition parse-failed (error)
   ((message :initarg :message))
@@ -188,7 +187,7 @@
     (t
      (error "Unexpected style: ~S" style))))
 
-(defun parse-value (value media-type content-type)
+(defun parse-with-media-type (value media-type content-type)
   (check-type media-type media-type)
   (check-type content-type string)
   (let ((value

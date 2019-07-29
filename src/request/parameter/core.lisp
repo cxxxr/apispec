@@ -1,4 +1,4 @@
-(defpackage #:apispec/parameter/core
+(defpackage #:apispec/request/parameter/core
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/schema
@@ -11,7 +11,7 @@
            #:parameter-style
            #:parameter-explode-p
            #:parameter-allow-reserved-p))
-(in-package #:apispec/parameter/core)
+(in-package #:apispec/request/parameter/core)
 
 (declaim-safety)
 

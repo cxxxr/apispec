@@ -2,11 +2,10 @@
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/request
+                #:parameter
                 #:request-body)
   (:import-from #:apispec/response
                 #:responses)
-  (:import-from #:apispec/parameter
-                #:parameter)
   (:export #:operation
            #:operation-tags
            #:operation-summary

@@ -1,4 +1,4 @@
-(defpackage #:apispec/encoding/core
+(defpackage #:apispec/request/encoding/core
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/schema
@@ -14,7 +14,7 @@
            #:media-type
            #:media-type-schema
            #:media-type-encoding))
-(in-package #:apispec/encoding/core)
+(in-package #:apispec/request/encoding/core)
 
 (declaim-safety)
 

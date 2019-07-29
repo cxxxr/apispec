@@ -19,7 +19,9 @@
     ((:file "core")
      (:file "coerce")
      (:file "encode")))
-   (:file "encoding")
-   (:file "parameter")
+   (:module "request"
+    :components
+    ((:file "encoding")
+     (:file "parameter")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c)))

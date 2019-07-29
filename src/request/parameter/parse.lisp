@@ -1,28 +1,26 @@
-(defpackage #:apispec/parameter/parse
+(defpackage #:apispec/request/parameter/parse
   (:use #:cl)
-  (:import-from #:apispec/parameter/core
+  (:import-from #:apispec/request/parameter/core
                 #:parameter-name
                 #:parameter-style
                 #:parameter-schema
                 #:parameter-explode-p)
-  (:import-from #:apispec/encoding
+  (:import-from #:apispec/request/encoding
                 #:parse-complex-string)
   (:shadowing-import-from #:apispec/schema
                           #:coerce-data)
   (:import-from #:assoc-utils
                 #:aget)
-  (:export #:parse-value
-           #:parse-failed))
-(in-package #:apispec/parameter/parse)
+  (:export #:parse-with-parameter))
+(in-package #:apispec/request/parameter/parse)
 
 (define-condition parse-failed (error)
-  ((message :initarg :message
-            :initform nil))
+  ((message :initarg :message))
   (:report (lambda (condition stream)
              (with-slots (message) condition
                (princ message stream)))))
 
-(defun parse-value (value parameter)
+(defun parse-with-parameter (value parameter)
   (let ((style (parameter-style parameter))
         (name (parameter-name parameter))
         (empty '#:empty))
