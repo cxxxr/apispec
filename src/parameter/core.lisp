@@ -58,13 +58,32 @@
                    :reader parameter-allow-reserved-p)))
 
 (defmethod initialize-instance ((object parameter) &rest initargs
-                                &key in (required nil required-supplied-p) default &allow-other-keys)
+                                &key in (required nil required-supplied-p) default style
+                                &allow-other-keys)
   (when (equal in "path")
     (when (and required-supplied-p
                (not required))
       (error ":required must be 'true' for 'path' parameters."))
     (setf (getf initargs :required) t
           required t))
+
+  (when style
+    (cond
+      ((equal style "matrix")
+       (assert (equal in "path")))
+      ((equal style "label")
+       (assert (equal in "path")))
+      ((equal style "form")
+       (assert (or (equal in "query")
+                   (equal in "cookie"))))
+      ((equal style "simple")
+       (assert (or (equal in "path")
+                   (equal in "header"))))
+      ((or (equal style "spaceDelimited")
+           (equal style "pipeDelimited")
+           (equal style "deepObject"))
+       (assert (equal in "query")))))
+
   (when (and default required)
     (error ":default cannot be specified for required parameters"))
 
