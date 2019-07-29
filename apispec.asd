@@ -10,6 +10,7 @@
 
 (defsystem "apispec/tests"
   :depends-on ("apispec"
+               "assoc-utils"
                "rove")
   :pathname "tests"
   :components

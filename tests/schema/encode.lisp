@@ -1,7 +1,7 @@
-(defpackage #:apispec/tests/schema/encode
-  (:use #:cl
-        #:apispec/schema/encode
-        #:apispec/schema/core
+(uiop:define-package #:apispec/tests/schema/encode
+    (:mix #:apispec/schema/core
+          #:cl)
+  (:use #:apispec/schema/encode
         #:rove))
 (in-package #:apispec/tests/schema/encode)
 

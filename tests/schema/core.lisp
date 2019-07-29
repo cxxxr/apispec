@@ -1,11 +1,7 @@
-(defpackage #:apispec/tests/schema/core
-  (:use #:cl
-        #:apispec/schema/core
-        #:rove)
-  (:shadowing-import-from #:apispec/schema/core
-                          #:number
-                          #:string
-                          #:array))
+(uiop:define-package #:apispec/tests/schema/core
+    (:mix #:apispec/schema/core
+          #:cl)
+  (:use #:rove))
 (in-package #:apispec/tests/schema/core)
 
 (deftest number-tests

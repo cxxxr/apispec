@@ -1,24 +1,11 @@
-(defpackage #:apispec/schema/coerce
-  (:use #:cl
-        #:apispec/schema/core
-        #:apispec/schema/validate
+(uiop:define-package #:apispec/schema/coerce
+    (:mix #:apispec/schema/core
+          #:cl)
+  (:use #:apispec/schema/validate
         #:apispec/utils
         #:parse-number)
-  (:shadowing-import-from #:apispec/schema/core
-                          #:number
-                          #:float
-                          #:double
-                          #:integer
-                          #:string
-                          #:boolean
-                          #:array
-
-                          #:items
-                          #:name
-                          #:type
-                          #:default
-
-                          #:parse-schema-definition)
+  (:import-from #:apispec/schema/core
+                #:parse-schema-definition)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
@@ -51,9 +38,9 @@
              :schema schema)))
   (:method :around (value (schema schema))
     (let ((result (if (and (null value)
-                           (slot-boundp schema 'default)
-                           (slot-value schema 'default))
-                      (coerce-data (slot-value schema 'default) schema)
+                           (schema-has-default-p schema)
+                           (schema-default schema))
+                      (coerce-data (schema-default schema) schema)
                       (call-next-method))))
       (validate-data result schema)
       result)))
@@ -108,10 +95,10 @@
 ;; Array Type
 
 (defmethod coerce-data (value (schema array))
-  (if (slot-boundp schema 'items)
+  (if (array-items schema)
       (map 'vector
            (lambda (item)
-             (coerce-data item (slot-value schema 'items)))
+             (coerce-data item (array-items schema)))
            value)
       (coerce value 'vector)))
 
@@ -127,15 +114,15 @@
      (loop with additional-properties = (object-additional-properties schema)
            for (key . field-value) in value
            for prop = (find key properties
-                            :key (lambda (prop) (slot-value prop 'name))
+                            :key #'property-name
                             :test #'equal)
            collect
            (cons key
                  (cond
                    ((or prop
-                        (typep additional-properties 'schema))
+                        (schemap additional-properties))
                     (handler-case (coerce-data field-value (if prop
-                                                               (slot-value prop 'type)
+                                                               (property-type prop)
                                                                additional-properties))
                       (validation-failed (e)
                         (error 'validation-failed
@@ -153,12 +140,12 @@
                     field-value)
                    (t (error "Not allowed branch. Perhaps a bug of apispec.")))))
      (loop for prop in properties
-           for type = (slot-value prop 'type)
-           when (and (slot-boundp type 'default)
-                     (not (find (slot-value prop 'name)
+           for type = (property-type prop)
+           when (and (schema-has-default-p type)
+                     (not (find (property-name prop)
                                 value
                                 :key #'car
                                 :test #'equal)))
              collect
-             (cons (slot-value prop 'name)
-                   (slot-value type 'default))))))
+             (cons (property-name prop)
+                   (schema-default type))))))

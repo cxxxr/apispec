@@ -1,32 +1,6 @@
-(defpackage #:apispec/schema/validate
-  (:use #:cl
-        #:apispec/schema/core)
-  (:shadowing-import-from #:apispec/schema/core
-                          #:number
-                          #:float
-                          #:double
-                          #:integer
-                          #:string
-                          #:boolean
-                          #:array
-
-                          #:multiple-of
-                          #:maximum
-                          #:exclusive-maximum
-                          #:minimum
-                          #:exclusive-minimum
-                          #:max-length
-                          #:min-length
-                          #:pattern
-                          #:min-items
-                          #:max-items
-                          #:unique-items
-                          #:required
-                          #:min-properties
-                          #:max-properties
-                          #:name
-                          #:type
-                          #:nullable)
+(uiop:define-package #:apispec/schema/validate
+    (:mix #:apispec/schema/core
+          #:cl)
   (:import-from #:cl-ppcre)
   (:export #:validation-failed
            #:validate-data))
@@ -49,8 +23,7 @@
     (validate-data value (make-schema schema)))
   (:method :around ((value null) (schema schema))
     (unless (or (typep schema 'boolean)  ;; BOOLEAN can be NIL
-                (and (slot-boundp schema 'nullable)
-                     (slot-value schema 'nullable)))
+                (schema-nullable-p schema))
       (error 'validation-failed
              :value value
              :schema schema
@@ -64,45 +37,41 @@
 ;; Number Types
 
 (defmethod validate-data (value (schema number))
-  (unless (and (or (not (slot-boundp schema 'minimum))
-                   (funcall (if (and (slot-boundp schema 'exclusive-minimum)
-                                     (slot-value schema 'exclusive-minimum))
+  (unless (and (or (not (number-minimum schema))
+                   (funcall (if (number-exclusive-minimum-p schema)
                                 #'<
                                 #'<=)
-                            (slot-value schema 'minimum)
+                            (number-minimum schema)
                             value))
-               (or (not (slot-boundp schema 'maximum))
-                   (funcall (if (and (slot-boundp schema 'exclusive-maximum)
-                                     (slot-value schema 'exclusive-maximum))
+               (or (not (number-maximum schema))
+                   (funcall (if (number-exclusive-maximum-p schema)
                                 #'<
                                 #'<=)
                             value
-                            (slot-value schema 'maximum))))
+                            (number-maximum schema))))
     (error 'validation-failed
            :value value
            :schema schema
            :message
            (with-output-to-string (*standard-output*)
              (princ "Not in range of ")
-             (when (slot-boundp schema 'minimum)
-               (princ (slot-value schema 'minimum))
-               (if (and (slot-boundp schema 'exclusive-minimum)
-                        (slot-value schema 'exclusive-minimum))
+             (when (number-minimum schema)
+               (princ (number-minimum schema))
+               (if (number-exclusive-minimum-p schema)
                    (princ " <")
                    (princ " <=")))
              (princ " value ")
-             (when (slot-boundp schema 'maximum)
-               (if (and (slot-boundp schema 'exclusive-maximum)
-                        (slot-value schema 'exclusive-maximum))
+             (when (number-maximum schema)
+               (if (number-exclusive-maximum-p schema)
                    (princ "< ")
                    (princ "<= "))
-               (princ (slot-value schema 'maximum))))))
-  (when (slot-boundp schema 'multiple-of)
-    (unless (= (mod value (slot-value schema 'multiple-of)) 0)
+               (princ (number-maximum schema))))))
+  (when (number-multiple-of schema)
+    (unless (= (mod value (number-multiple-of schema)) 0)
       (error 'validation-failed
              :value value
              :schema schema
-             :message (format nil "Not multiple of ~A" (slot-value schema 'multiple-of)))))
+             :message (format nil "Not multiple of ~A" (number-multiple-of schema)))))
 
   t)
 
@@ -111,26 +80,24 @@
 ;; String Types
 
 (defmethod validate-data (value (schema string))
-  (unless (and (or (not (slot-boundp schema 'min-length))
-                   (<= (slot-value schema 'min-length) (length value)))
-               (or (not (slot-boundp schema 'max-length))
-                   (<= (length value) (slot-value schema 'max-length))))
+  (unless (and (or (not (string-min-length schema))
+                   (<= (string-min-length schema) (length value)))
+               (or (not (string-max-length schema))
+                   (<= (length value) (string-max-length schema))))
     (error 'validation-failed
            :value value
            :schema schema
            :message (format nil "The length not in the range~@[ from ~A~]~@[ to ~A~]"
-                            (and (slot-boundp schema 'min-length)
-                                 (slot-value schema 'min-length))
-                            (and (slot-boundp schema 'max-length)
-                                 (slot-value schema 'max-length)))))
+                            (string-min-length schema)
+                            (string-max-length schema))))
 
-  (unless (or (not (slot-boundp schema 'pattern))
-              (ppcre:scan (slot-value schema 'pattern) value))
+  (unless (or (not (string-pattern schema))
+              (ppcre:scan (string-pattern schema) value))
     (error 'validation-failed
            :value value
            :schema schema
            :message (format nil "Not match to ~S"
-                            (slot-value schema 'pattern))))
+                            (string-pattern schema))))
 
   t)
 
@@ -139,21 +106,18 @@
 ;; Array Type
 
 (defmethod validate-data (value (schema array))
-  (unless (and (or (not (slot-boundp schema 'min-items))
-                   (<= (slot-value schema 'min-items) (length value)))
-               (or (not (slot-boundp schema 'max-items))
-                   (<= (length value) (slot-value schema 'max-items))))
+  (unless (and (or (not (array-min-items schema))
+                   (<= (array-min-items schema) (length value)))
+               (or (not (array-max-items schema))
+                   (<= (length value) (array-max-items schema))))
     (error 'validation-failed
            :value value
            :schema schema
            :message (format nil "The length not in the range~@[ from ~A~]~@[ to ~A~]"
-                            (and (slot-boundp schema 'min-items)
-                                 (slot-value schema 'min-items))
-                            (and (slot-boundp schema 'max-items)
-                                 (slot-value schema 'max-items)))))
+                            (array-min-items schema)
+                            (array-max-items schema))))
 
-  (when (and (slot-boundp schema 'unique-items)
-             (slot-value schema 'unique-items))
+  (when (array-unique-items-p schema)
     (unless (= (length (remove-duplicates value :test #'equal))
                (length value))
       (error 'validation-failed
@@ -171,10 +135,10 @@
 
   (loop for (key . field-value) in value
         for prop = (find key (object-properties schema)
-                         :key (lambda (x) (slot-value x 'name))
+                         :key #'property-name
                          :test #'equal)
         do (if prop
-               (handler-case (validate-data field-value (slot-value prop 'type))
+               (handler-case (validate-data field-value (property-type prop))
                  (validation-failed (e)
                    (error 'validation-failed
                           :value value
@@ -190,8 +154,7 @@
                                 :message (format nil "Undefined property: ~S" key)))
                    ((eql t))
                    (schema (validate-data field-value additional-properties))))))
-  (loop for key in (and (slot-boundp schema 'required)
-                        (slot-value schema 'required))
+  (loop for key in (object-required schema)
         unless (find key value :key #'car :test #'equal)
           collect key into missing-keys
         finally
@@ -200,17 +163,16 @@
                     :value value
                     :schema schema
                     :message (format nil "Missing required keys: ~S" missing-keys))))
-  (unless (and (or (not (slot-boundp schema 'min-properties))
-                   (nthcdr (slot-value schema 'min-properties) value))
-               (or (not (slot-boundp schema 'max-properties))
-                   (nthcdr (slot-value schema 'max-properties) value)))
+  (unless (and (or (not (object-min-properties schema))
+                   (nthcdr (object-min-properties schema) value))
+               (or (not (object-max-properties schema))
+                   (nthcdr (object-max-properties schema) value)))
     (error 'validation-failed
            :value value
            :schema schema
            :message
            (format nil "The number of properties has to be in the range of~@[ ~A <=~] (length properties)~@[ <= ~A~]"
-                   (and (slot-boundp schema 'min-properties)
-                        (slot-value schema 'min-properties))
-                   (and (slot-boundp schema 'max-properties)
-                        (slot-value schema 'max-properties)))))
+                   (object-min-properties schema)
+                   (object-max-properties schema))))
+
   t)

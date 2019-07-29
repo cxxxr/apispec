@@ -16,27 +16,55 @@
   (:import-from #:alexandria
                 #:ensure-cons)
   (:export #:schema
+           #:schemap
+           #:schema-type
+           #:schema-format
+           #:schema-enum
+           #:schema-default
+           #:schema-has-default-p
+           #:schema-nullable-p
+           #:schema-deprecated-p
            #:make-schema
            #:defschema
 
-           ;; Don't export because these conflicts with :cl
-           ;#:number
-           ;#:float
-           ;#:integer
-           ;#:string
-           ;#:byte
-           ;#:boolean
-           ;#:array
-
+           #:number
+           #:number-multiple-of
+           #:number-maximum
+           #:number-exclusive-maximum-p
+           #:number-minimum
+           #:number-exclusive-minimum-p
+           #:float
            #:double
+           #:integer
+
+           #:string
+           #:string-max-length
+           #:string-min-length
+           #:string-pattern
+           #:byte
            #:binary
            #:date
            #:date-time
            #:email
            #:uuid
+
+           #:boolean
+
+           #:array
+           #:array-items
+           #:array-max-items
+           #:array-min-items
+           #:array-unique-items-p
+
            #:object
+           #:object-required
            #:object-properties
-           #:object-additional-properties))
+           #:object-max-properties
+           #:object-min-properties
+           #:object-additional-properties
+           #:property
+           #:property-name
+           #:property-type))
 (in-package #:apispec/schema/core)
 
 ;; Set safety level 3 for CLOS slot type checking.
@@ -62,43 +90,74 @@
        (otherwise schema-class-name)))
 
 (defclass schema ()
-  ((type :type cl:string)
-   (format :type cl:string)
+  ((type :type cl:string
+         :initform (error ":type is required for SCHEMA")
+         :reader schema-type)
+   (format :type (or cl:string null)
+           :initform nil
+           :reader schema-format)
    (enum :type proper-list
-         :initarg :enum)
+         :initarg :enum
+         :initform nil
+         :reader schema-enum)
    (default :type t
             :initarg :default)
    (nullable :type cl:boolean
-             :initarg :nullable)
+             :initarg :nullable
+             :initform nil
+             :reader schema-nullable-p)
    (deprecated :type cl:boolean
-               :initarg :deprecated)))
+               :initarg :deprecated
+               :initform nil
+               :reader schema-deprecated-p)))
 
 (defgeneric make-schema (class &rest initargs)
   (:method (class &rest initargs)
     (apply #'make-instance (find-schema class) initargs)))
 
+(defun schemap (object)
+  (typep object 'schema))
+
+(defun schema-has-default-p (schema)
+  (slot-boundp schema 'default))
+
+(defun schema-default (schema)
+  (assert (schema-has-default-p schema))
+  (slot-value schema 'default))
+
 (defclass number (schema)
   ((type :initform "number")
-   (multiple-of :type (cl:real 0)
-                :initarg :multiple-of)
-   (maximum :type cl:real
-            :initarg :maximum)
+   (multiple-of :type (or (cl:real 0) null)
+                :initarg :multiple-of
+                :initform nil
+                :reader number-multiple-of)
+   (maximum :type (or cl:real null)
+            :initarg :maximum
+            :initform nil
+            :reader number-maximum)
    (exclusive-maximum :type cl:boolean
-                      :initarg :exclusive-maximum)
-   (minimum :type cl:real
-            :initarg :minimum)
+                      :initarg :exclusive-maximum
+                      :initform nil
+                      :reader number-exclusive-maximum-p)
+   (minimum :type (or cl:real null)
+            :initarg :minimum
+            :initform nil
+            :reader number-minimum)
    (exclusive-minimum :type cl:boolean
-                      :initarg :exclusive-minimum)))
+                      :initarg :exclusive-minimum
+                      :initform nil
+                      :reader number-exclusive-minimum-p)))
 
 (defmethod initialize-instance ((object number) &rest initargs
                                 &key maximum exclusive-maximum
                                   minimum exclusive-minimum &allow-other-keys)
-  ;; :exclusive-{minimum,maximum} can be specified with :{minimum,maximum}
   (declare (ignore initargs))
+  ;; :exclusive-{minimum,maximum} can be specified with :{minimum,maximum}
   (assert (or (null exclusive-maximum)
               maximum))
   (assert (or (null exclusive-minimum)
               minimum))
+
   (call-next-method))
 
 (defun make-number-schema (class &rest initargs)
@@ -132,12 +191,18 @@
 
 (defclass string (schema)
   ((type :initform "string")
-   (max-length :type (cl:integer 0)
-               :initarg :max-length)
-   (min-length :type (cl:integer 0)
-               :initarg :min-length)
-   (pattern :type cl:string
-            :initarg :pattern)))
+   (max-length :type (or (cl:integer 0) null)
+               :initarg :max-length
+               :initform nil
+               :reader string-max-length)
+   (min-length :type (or (cl:integer 0) null)
+               :initarg :min-length
+               :initform nil
+               :reader string-min-length)
+   (pattern :type (or cl:string null)
+            :initarg :pattern
+            :initform nil
+            :reader string-pattern)))
 
 (defmethod initialize-instance ((object string) &rest initargs
                                 &key max-length min-length &allow-other-keys)
@@ -189,14 +254,22 @@
 
 (defclass array (schema)
   ((type :initform "array")
-   (items :type schema
-          :initarg :items)
-   (max-items :type (cl:integer 0)
-              :initarg :max-items)
-   (min-items :type (cl:integer 0)
-              :initarg :min-items)
+   (items :type (or schema null)
+          :initarg :items
+          :initform nil
+          :reader array-items)
+   (max-items :type (or (cl:integer 0) null)
+              :initarg :max-items
+              :initform nil
+              :reader array-max-items)
+   (min-items :type (or (cl:integer 0) null)
+              :initarg :min-items
+              :initform nil
+              :reader array-min-items)
    (unique-items :type cl:boolean
-                 :initarg :unique-items)))
+                 :initarg :unique-items
+                 :initform nil
+                 :reader array-unique-items-p)))
 
 (declaim (ftype (function (t) t) parse-schema-definition))
 
@@ -231,22 +304,32 @@
 
 (defclass property ()
   ((name :type (or cl:symbol cl:string)
-         :initarg :name)
+         :initarg :name
+         :initform (error ":name is required for PROPERTY")
+         :reader property-name)
    (type :type schema
-         :initarg :type)))
+         :initarg :type
+         :initform (error ":type is required for PROPERTY")
+         :reader property-type)))
 
 (defclass object (schema)
   ((type :initform "object")
    (required :type (proper-list (or cl:symbol cl:string))
-             :initarg :required)
+             :initarg :required
+             :initform nil
+             :reader object-required)
    (properties :type (proper-list property)
                :initarg :properties
                :initform nil
                :reader object-properties)
-   (max-properties :type (cl:integer 0)
-                   :initarg :max-properties)
-   (min-properties :type (cl:integer 0)
-                   :initarg :min-properties)
+   (max-properties :type (or (cl:integer 0) null)
+                   :initarg :max-properties
+                   :initform nil
+                   :reader object-max-properties)
+   (min-properties :type (or (cl:integer 0) null)
+                   :initarg :min-properties
+                   :initform nil
+                   :reader object-min-properties)
    (additional-properties :type (or cl:boolean schema)
                           :initarg :additional-properties
                           :initform t
@@ -261,7 +344,7 @@
 
   (dolist (prop-name required)
     (unless (find prop-name properties
-                  :key (lambda (x) (slot-value x 'name))
+                  :key #'property-name
                   :test #'equal)
       (error "Unknown property ~S in :required" prop-name)))
 
