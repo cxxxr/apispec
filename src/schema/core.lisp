@@ -333,12 +333,24 @@
                          (and is-nullable
                               '(:nullable t)))))))))
 
+(defun expand-property-definition (property-definitions)
+  (mapcar (lambda (prop-def)
+            (destructuring-bind (name schema &rest initargs)
+                prop-def
+              `(make-instance 'property
+                              :name ',name
+                              :type (schema ,schema)
+                              ,@initargs)))
+          property-definitions))
+
 (defmacro schema (schema-definition)
   (multiple-value-bind (type args)
       (parse-schema-definition schema-definition)
     (case type
       (object
-       `(make-schema ',type ',(first args) ,@(rest args)))
+       `(make-instance (find-schema ',type)
+                       :properties (list ,@(expand-property-definition (first args)))
+                       ,@(rest args)))
       (otherwise
        `(make-schema ',type ,@args)))))
 
@@ -347,7 +359,7 @@
   (when (consp (first initargs))
     (setf initargs
           (append
-           `(:properties (make-properties ',(first initargs)))
+           `(:properties (list ,@(expand-property-definition (first initargs))))
            (rest initargs))))
   `(defclass ,name (,superclass)
      ()
