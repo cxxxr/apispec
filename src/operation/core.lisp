@@ -1,9 +1,9 @@
 (defpackage #:apispec/operation/core
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/operation/request-body
+  (:import-from #:apispec/request
                 #:request-body)
-  (:import-from #:apispec/operation/response
+  (:import-from #:apispec/response
                 #:responses)
   (:import-from #:apispec/parameter
                 #:parameter)

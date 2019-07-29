@@ -1,4 +1,4 @@
-(defpackage #:apispec/operation/response
+(defpackage #:apispec/response/core
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/header
@@ -10,7 +10,7 @@
            #:response-headers
            #:response-content
            #:responses))
-(in-package #:apispec/operation/response)
+(in-package #:apispec/response/core)
 
 (declaim-safety)
 

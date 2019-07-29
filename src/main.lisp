@@ -56,4 +56,6 @@
   (:mix-reexport #:apispec/parameter
                  #:apispec/encoding
                  #:apispec/header
+                 #:apispec/request
+                 #:apispec/response
                  #:apispec/operation))

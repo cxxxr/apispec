@@ -1,4 +1,4 @@
-(defpackage #:apispec/operation/request-body
+(defpackage #:apispec/request/request-body
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/encoding
@@ -7,7 +7,7 @@
            #:request-body-description
            #:request-body-content
            #:request-body-required-p))
-(in-package #:apispec/operation/request-body)
+(in-package #:apispec/request/request-body)
 
 (declaim-safety)
 

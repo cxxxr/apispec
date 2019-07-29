@@ -1,3 +1,5 @@
 (uiop:define-package #:apispec/encoding
-    (:use-reexport #:apispec/encoding/core
-                   #:apispec/encoding/parse))
+    (:use #:cl)
+  (:use-reexport #:apispec/encoding/core
+                 #:apispec/encoding/parse))
+(in-package #:apispec/encoding)

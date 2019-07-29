@@ -1,6 +1,4 @@
 (uiop:define-package #:apispec/operation
     (:use #:cl)
-  (:use-reexport #:apispec/operation/core
-                 #:apispec/operation/request-body
-                 #:apispec/operation/response))
+  (:use-reexport #:apispec/operation/core))
 (in-package #:apispec/operation)
