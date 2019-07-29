@@ -53,4 +53,5 @@
            #:validate-data
 
            #:encode-data)
-  (:use-reexport #:apispec/parameter))
+  (:use-reexport #:apispec/parameter
+                 #:apispec/operation))

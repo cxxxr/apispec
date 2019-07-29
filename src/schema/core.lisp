@@ -1,7 +1,6 @@
 (defpackage #:apispec/schema/core
   (:use #:cl
-        #:apispec/utils
-        #:trivial-cltl2)
+        #:apispec/utils)
   (:shadow #:number
            #:float
            #:integer
@@ -67,12 +66,7 @@
            #:property-type))
 (in-package #:apispec/schema/core)
 
-;; Set safety level 3 for CLOS slot type checking.
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *previous-safety*
-    (or (assoc 'safety (declaration-information 'optimize))
-        '(safety 1)))
-  (proclaim '(optimize safety)))
+(declaim-safety)
 
 (defun find-schema (schema-class-name)
   (check-type schema-class-name (and symbol (not keyword) (not null)))
@@ -448,5 +442,4 @@
      ()
      (:default-initargs ,@initargs)))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim `(optimize ,*previous-safety*)))
+(undeclaim-safety)

@@ -1,6 +1,6 @@
 (defpackage #:apispec/parameter/core
   (:use #:cl
-        #:trivial-cltl2)
+        #:apispec/utils)
   (:import-from #:apispec/schema
                 #:schema)
   (:export #:parameter
@@ -13,12 +13,7 @@
            #:parameter-allow-reserved-p))
 (in-package #:apispec/parameter/core)
 
-;; Set safety level 3 for CLOS slot type checking.
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *previous-safety*
-    (or (assoc 'safety (declaration-information 'optimize))
-        '(safety 1)))
-  (proclaim '(optimize safety)))
+(declaim-safety)
 
 (defun parameter-in-string-p (in)
   (and (member in '("path" "query" "header" "cookie")
@@ -95,5 +90,4 @@
             t
             nil))))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (proclaim `(optimize ,*previous-safety*)))
+(undeclaim-safety)

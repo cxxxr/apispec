@@ -1,9 +1,13 @@
 (defpackage #:apispec/utils
   (:use #:cl)
+  (:import-from #:trivial-cltl2
+                #:declaration-information)
   (:export #:proper-list-p
            #:proper-list
            #:association-list-p
-           #:association-list))
+           #:association-list
+           #:declaim-safety
+           #:undeclaim-safety))
 (in-package #:apispec/utils)
 
 (defun proper-list-p (object &optional (element-type t))
@@ -28,12 +32,40 @@
                             fn))))))
     `(satisfies ,fn)))
 
-(defun association-list-p (value)
+(defun association-list-p (value key-type value-type)
   (and (listp value)
        (every (lambda (pair)
                 (and (consp pair)
-                     (typep (car pair) '(or symbol string))))
+                     (typep (car pair) key-type)
+                     (typep (cdr pair) value-type)))
               value)))
 
-(deftype association-list ()
-  '(satisfies association-list-p))
+(defun simple-association-list-p (value)
+  (association-list-p value '(or symbol string) t))
+
+(defvar *association-list-type-checker*
+  (make-hash-table :test 'equal))
+
+(deftype association-list (&optional (key-type '(or symbol string)) (value-type t) )
+  (let ((fn (if (and (equal key-type '(or symbol string))
+                     (eq value-type t))
+                'simple-association-list-p
+                (or (gethash (cons key-type value-type) *association-list-type-checker*)
+                    (let ((fn (gensym (format nil "~A-ASSOCIATION-LIST" (cons key-type value-type)))))
+                      (setf (fdefinition fn)
+                            (lambda (object)
+                              (association-list-p object key-type value-type)))
+                      (setf (gethash (cons key-type value-type) *association-list-type-checker*)
+                            fn))))))
+    `(satisfies ,fn)))
+
+(defmacro declaim-safety ()
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (defparameter ,(intern (string :*previous-safety*) *package*)
+       (or (assoc 'safety (declaration-information 'optimize))
+           '(safety 1)))
+     (proclaim '(optimize safety))))
+
+(defmacro undeclaim-safety ()
+  `(eval-when (:compile-toplevel :load-toplevel :execute)
+     (proclaim `(optimize ,,(intern (string :*previous-safety*) *package*)))))
