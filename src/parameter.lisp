@@ -54,6 +54,19 @@
    (allow-reserved :type boolean
                    :initarg :allow-reserved)))
 
+(defmethod initialize-instance ((object parameter) &rest initargs
+                                &key in (required nil required-supplied-p) default &allow-other-keys)
+  (when (equal in "path")
+    (when (and required-supplied-p
+               (not required))
+      (error ":required must be 'true' for 'path' parameters."))
+    (setf (getf initargs :required) t
+          required t))
+  (when (and default required)
+    (error ":default cannot be specified for required parameters"))
+
+  (apply #'call-next-method object initargs))
+
 (defun parameter-style (parameter)
   (check-type parameter parameter)
   (if (slot-boundp parameter 'style)
