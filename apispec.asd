@@ -8,6 +8,8 @@
   :pathname "src"
   :in-order-to ((test-op (test-op "apispec/tests"))))
 
+(register-system-packages "http-body" '(#:http-body #:http-body.util))
+
 (defsystem "apispec/tests"
   :depends-on ("apispec"
                "assoc-utils"
@@ -21,7 +23,6 @@
      (:file "encode")))
    (:module "request"
     :components
-    ((:file "encoding")
-     (:file "parameter")))
+    ((:file "encoding")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c)))

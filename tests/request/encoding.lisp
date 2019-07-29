@@ -60,22 +60,30 @@
 
 (deftest parse-form-value-tests
   (testing ":explode nil"
-    (ok (equal (parse-form-value "color=")
-               '(("color"))))
-    (ok (equal (parse-form-value "color=blue" :as (schema string))
-               '(("color" . "blue"))))
-    (ok (equalp (parse-form-value "color=blue,black,brown" :as (schema array))
-                '(("color" . #("blue" "black" "brown")))))
-    (ok (equal (parse-form-value "color=R,100,G,200,B,150" :as (schema object))
-               '(("color" . (("R" . "100") ("G" . "200") ("B" . "150")))))))
+    (ok (equal (parse-form-value '(("color" . "")) "color")
+               ""))
+    (ok (equal (parse-form-value '(("color" . "blue")) "color" :as (schema string))
+               "blue"))
+    (ok (equalp (parse-form-value '(("color" . "blue,black,brown")) "color"
+                                  :as (schema array))
+                #("blue" "black" "brown")))
+    (ok (equal (parse-form-value '(("color" . "R,100,G,200,B,150")) "color"
+                                 :as (schema object))
+               '(("R" . "100") ("G" . "200") ("B" . "150")))))
   (testing ":explode t"
-    (ok (equal (parse-form-value "color=" :explode t)
-               '(("color"))))
-    (ok (equal (parse-form-value "color=blue" :as (schema string) :explode t)
-               '(("color" . "blue"))))
-    (ok (equalp (parse-form-value "color=blue&color=black&color=brown" :as (schema array) :explode t)
-                '(("color" . #("blue" "black" "brown")))))
-    (ok (equal (parse-form-value "R=100&G=200&B=150" :as (schema object) :explode t)
+    (ok (equal (parse-form-value '(("color" . "")) "color" :explode t)
+               ""))
+    (ok (equal (parse-form-value '(("color" . "blue")) "color" :as (schema string) :explode t)
+               "blue"))
+    (ok (equalp (parse-form-value '(("color" . "blue")
+                                    ("color" . "black")
+                                    ("color" . "brown"))
+                                  "color"
+                                  :as (schema array) :explode t)
+                #("blue" "black" "brown")))
+    (ok (equal (parse-form-value '(("R" . "100")
+                                   ("G" . "200")
+                                   ("B" . "150")) "color" :as (schema object) :explode t)
                '(("R" . "100") ("G" . "200") ("B" . "150"))))))
 
 (deftest parse-simple-value-tests
@@ -107,7 +115,10 @@
              '(("R" . "100") ("G" . "200")))))
 
 (deftest parse-deep-object-value-tests
-  (ok (equal (parse-deep-object-value "color[R]=100&color[G]=200&color[B]=150")
-             '(("color" . (("R" . "100")
-                           ("G" . "200")
-                           ("B" . "150")))))))
+  (ok (equal (parse-deep-object-value '(("color[R]" . "100")
+                                        ("color[G]" . "200")
+                                        ("color[B]" . "150"))
+                                      "color")
+             '(("R" . "100")
+               ("G" . "200")
+               ("B" . "150")))))

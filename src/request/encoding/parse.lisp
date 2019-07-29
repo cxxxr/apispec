@@ -1,5 +1,6 @@
 (defpackage #:apispec/request/encoding/parse
   (:use #:cl
+        #:apispec/utils
         #:cl-utilities)
   (:import-from #:apispec/request/encoding/core
                 #:media-type
@@ -16,15 +17,18 @@
                           #:array)
   (:import-from #:cl-ppcre)
   (:import-from #:babel
-                #:string-to-octets)
-  (:import-from #:flexi-streams
-                #:make-in-memory-input-stream)
+                #:octets-to-string)
   (:import-from #:http-body)
+  (:import-from #:http-body.util
+                #:detect-charset
+                #:slurp-stream)
   (:import-from #:alexandria
-                #:starts-with-subseq)
+                #:starts-with-subseq
+                #:when-let)
   (:import-from #:assoc-utils
                 #:aget)
   (:export #:parse-complex-string
+           #:parse-complex-parameters
            #:parse-with-media-type))
 (in-package #:apispec/request/encoding/parse)
 
@@ -84,36 +88,25 @@
     (otherwise
      (values (ppcre:scan-to-strings "(?<=\\.)([^\\.]+)" value)))))
 
-(defun parse-form-value (value &key as explode)
+(defun parse-form-value (parameters name &key as explode)
   (typecase as
     (array
-     (let ((results '()))
-       (dolist (kv (ppcre:split "&" value))
-         (destructuring-bind (k v) (ppcre:split "=" kv :limit 2)
-           (if explode
-               (push v (aget results k))
-               (setf results
-                     (nconc results (list (cons k (ppcre:split "," v))))))))
-       (if explode
-           (loop for (k . v) in results
-                 collect (cons k (coerce (nreverse v) 'vector)))
-           (loop for (k . v) in results
-                 collect (cons k (coerce v 'vector))))))
+     (if explode
+         (map 'vector #'cdr
+              (remove-if-not (lambda (param-name)
+                               (equal param-name name))
+                             parameters
+                             :key #'car))
+         (when-let (val (aget parameters name))
+           (coerce (ppcre:split "," val) 'vector))))
     (object
-     (collecting
-       (dolist (kv (ppcre:split "&" value))
-         (destructuring-bind (k v) (ppcre:split "=" kv :limit 2)
-           (collect
-               (if explode
-                   (cons k v)
-                   (cons k
-                         (loop for (k v) on (ppcre:split "," v) by #'cddr
-                               collect (cons k v)))))))))
+     (if explode
+         parameters
+         (when-let (val (aget parameters name))
+           (loop for (k v) on (ppcre:split "," val) by #'cddr
+                 collect (cons k v)))))
     (otherwise
-     (collecting
-       (ppcre:do-register-groups (k v)
-           ("([^=]+)(?:=([^&]+))?" value)
-         (collect (cons k v)))))))
+     (aget parameters name))))
 
 (defun parse-simple-value (value &key as explode)
   (let ((key-values (ppcre:split "," value)))
@@ -146,17 +139,17 @@
 (defun parse-pipe-delimited-value (value &key as)
   (%parse-delimited-value "|" value :as as))
 
-(defun parse-deep-object-value (value)
+(defun parse-deep-object-value (parameters name)
   (let ((results '()))
-    (dolist (key-values (ppcre:split "&" value) results)
-      (destructuring-bind (k v)
-          (ppcre:split "=" key-values :limit 2)
-        (destructuring-bind (k prop)
-            (coerce
-             (nth-value 1 (ppcre:scan-to-strings "([^\\[]+)\\[([^\\]+])\\]" k))
-             'list)
-          (setf (aget results k)
-                (append (aget results k) (list (cons prop v)))))))))
+    (loop for (key . val) in parameters
+          do (destructuring-bind (key prop)
+                 (coerce
+                  (nth-value 1 (ppcre:scan-to-strings "([^\\[]+)\\[([^\\]+])\\]" key))
+                  'list)
+               (when (equal name key)
+                 (setf results
+                       (append results (list (cons prop val)))))))
+    results))
 
 (defun parse-complex-string (value style explode schema)
   (check-type value string)
@@ -170,38 +163,45 @@
      (parse-label-value value
                         :as schema
                         :explode explode))
-    ((equal style "form")
-     (parse-form-value value
-                       :as schema
-                       :explode explode))
     ((equal style "simple")
      (parse-simple-value value
                          :as schema
                          :explode explode))
-    ((equal style "spaceDelimited")
-     (parse-space-delimited-value value :as schema))
-    ((equal style "pipeDelimited")
-     (parse-pipe-delimited-value value :as schema))
-    ((equal style "deepObject")
-     (parse-deep-object-value value))
     (t
      (error "Unexpected style: ~S" style))))
 
-(defun parse-with-media-type (value media-type content-type)
+(defun parse-complex-parameters (parameters name style explode schema)
+  (assert (association-list-p parameters 'string 'string))
+  (check-type name string)
+  (cond
+    ((equal style "form")
+     (parse-form-value parameters name
+                       :as schema
+                       :explode explode))
+    ((equal style "spaceDelimited")
+     (when-let (pair (assoc name parameters :test #'equal))
+       (parse-space-delimited-value (cdr pair) :as schema)))
+    ((equal style "pipeDelimited")
+     (when-let (pair (assoc name parameters :test #'equal))
+       (parse-pipe-delimited-value (cdr pair) :as schema)))
+    ((equal style "deepObject")
+     (parse-deep-object-value parameters name))
+    (t (error "Unexpected style: ~S" style))))
+
+(defun parse-with-media-type (stream media-type content-type content-length)
   (check-type media-type media-type)
   (check-type content-type string)
-  (let ((value
-          (if (starts-with-subseq "text/" content-type)
-              value
-              (let* ((value (etypecase value
-                              (string (babel:string-to-octets value))
-                              ((vector (unsigned-byte 8)) value)))
-                     (stream (flex:make-in-memory-input-stream value)))
-                (multiple-value-bind (parsed-value success)
-                    (http-body:parse content-type nil stream)
-                  (if success
-                      parsed-value
-                      value))))))
+  (check-type content-length (or integer null))
+  (let* ((value
+           (multiple-value-bind (parsed-value success)
+               (http-body:parse content-type nil stream)
+             (if success
+                 parsed-value
+                 (slurp-stream stream content-length))))
+         (value (if (starts-with-subseq "text/" content-type)
+                    (babel:octets-to-string value
+                                            :encoding (detect-charset content-type))
+                    value)))
     (coerce-data
      (if (and (media-type-encoding media-type)
               (or (starts-with-subseq "application/x-www-form-urlencoded" content-type)

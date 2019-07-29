@@ -3,10 +3,15 @@
         #:apispec/utils)
   (:import-from #:apispec/request/encoding
                 #:media-type)
+  (:import-from #:cl-ppcre
+                #:scan-to-strings)
+  (:import-from #:alexandria
+                #:starts-with-subseq)
   (:export #:request-body
            #:request-body-description
            #:request-body-content
-           #:request-body-required-p))
+           #:request-body-required-p
+           #:request-body-media-type))
 (in-package #:apispec/request/request-body)
 
 (declaim-safety)
@@ -25,5 +30,18 @@
              :initarg :required
              :initform nil
              :reader request-body-required-p)))
+
+(defun request-body-media-type (request-body content-type)
+  (let ((content (request-body-content request-body)))
+    (cdr (or (find-if (lambda (type)
+                        (starts-with-subseq type content-type))
+                      content
+                      :key #'car)
+             (find-if (lambda (type)
+                        (let ((matched (ppcre:scan-to-strings "[^/]+/(?=\\*)" type)))
+                          (and matched
+                               (starts-with-subseq matched content-type))))
+                      content
+                      :key #'car)))))
 
 (undeclaim-safety)
