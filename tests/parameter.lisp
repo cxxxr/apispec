@@ -2,7 +2,7 @@
   (:use #:cl
         #:apispec/parameter
         #:rove)
-  (:import-from #:apispec/parameter
+  (:import-from #:apispec/parameter/parse
                 #:parse-matrix-value
                 #:parse-label-value
                 #:parse-form-value
@@ -10,7 +10,7 @@
                 #:parse-space-delimited-value
                 #:parse-pipe-delimited-value
                 #:parse-deep-object-value)
-  (:import-from #:apispec/schema/core
+  (:import-from #:apispec/schema
                 #:schema
                 #:object))
 (in-package #:apispec/tests/parameter)
