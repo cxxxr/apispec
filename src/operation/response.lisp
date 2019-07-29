@@ -1,9 +1,9 @@
 (defpackage #:apispec/operation/response
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/operation/header
+  (:import-from #:apispec/header
                 #:header)
-  (:import-from #:apispec/operation/media-type
+  (:import-from #:apispec/encoding
                 #:media-type)
   (:export #:response
            #:response-description

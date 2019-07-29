@@ -23,7 +23,9 @@
 
 (defgeneric coerce-data (value schema)
   (:method (value (schema symbol))
-    (coerce-data value (make-schema schema)))
+    (if (eq schema t)
+        value
+        (coerce-data value (make-schema schema))))
   (:method (value (schema cons))
     (coerce-data value
                  (multiple-value-bind (type args)
@@ -70,6 +72,9 @@
 
 (defmethod coerce-data ((value cl:string) (schema string))
   (princ-to-string value))
+
+(defmethod coerce-data ((value vector) (schema binary))
+  value)
 
 (defmethod coerce-data ((value cl:string) (schema date))
   (check-type value cl:string)

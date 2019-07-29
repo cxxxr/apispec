@@ -53,5 +53,7 @@
            #:validate-data
 
            #:encode-data)
-  (:use-reexport #:apispec/parameter
+  (:mix-reexport #:apispec/parameter
+                 #:apispec/encoding
+                 #:apispec/header
                  #:apispec/operation))

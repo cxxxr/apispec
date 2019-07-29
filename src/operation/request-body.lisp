@@ -1,7 +1,7 @@
 (defpackage #:apispec/operation/request-body
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/operation/media-type
+  (:import-from #:apispec/encoding
                 #:media-type)
   (:export #:request-body
            #:request-body-description

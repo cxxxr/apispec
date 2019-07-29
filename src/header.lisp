@@ -1,18 +1,24 @@
-(defpackage #:apispec/operation/header
+(defpackage #:apispec/header
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/schema
                 #:schema)
-  (:import-from #:apispec/parameter
-                #:parameter-style)
   (:export #:header
            #:header-required-p
            #:header-schema
            #:header-style
            #:header-explode-p))
-(in-package #:apispec/operation/header)
+(in-package #:apispec/header)
 
 (declaim-safety)
+
+(defun header-style-string-p (style)
+  (and (member style '("matrix" "label" "form" "simple" "spaceDelimited" "pipeDelimited" "deepObject")
+               :test #'equal)
+       t))
+
+(deftype header-style ()
+  '(satisfies header-style-string-p))
 
 (defclass header ()
   ((required :type boolean
@@ -23,7 +29,7 @@
            :initarg :schema
            :initform nil
            :reader header-schema)
-   (style :type parameter-style
+   (style :type header-style
           :initarg :style
           :initform "simple"
           :reader header-style)
