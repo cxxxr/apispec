@@ -1,4 +1,4 @@
-(defpackage #:apispec/request/coerce
+(defpackage #:apispec/request/validate
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/request/parameter
@@ -24,16 +24,16 @@
                 #:url-decode-params)
   (:import-from #:assoc-utils
                 #:aget)
-  (:export #:coerce-request))
-(in-package #:apispec/request/coerce)
+  (:export #:validate-request))
+(in-package #:apispec/request/validate)
 
 (defun parse-cookie-string (cookie)
   (when cookie
     (loop for kv in (ppcre:split "\\s*[,;]\\s*" cookie)
           append (quri:url-decode-params kv :lenient t))))
 
-(defun coerce-request (headers path-parameters query-string raw-body
-                       parameters request-body)
+(defun validate-request (headers path-parameters query-string raw-body
+                         parameters request-body)
   (check-type headers hash-table)
   (check-type path-parameters (association-list string string))
   (check-type query-string (or string null))
