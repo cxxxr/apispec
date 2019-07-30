@@ -1,8 +1,8 @@
-(defpackage #:apispec/request/encoding/parse
+(defpackage #:apispec/encoding/parse
   (:use #:cl
         #:apispec/utils
         #:cl-utilities)
-  (:import-from #:apispec/request/encoding/core
+  (:import-from #:apispec/encoding/core
                 #:media-type
                 #:media-type-encoding
                 #:media-type-schema
@@ -30,7 +30,7 @@
   (:export #:parse-complex-string
            #:parse-complex-parameters
            #:parse-with-media-type))
-(in-package #:apispec/request/encoding/parse)
+(in-package #:apispec/encoding/parse)
 
 (define-condition parse-failed (error)
   ((message :initarg :message))

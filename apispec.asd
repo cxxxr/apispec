@@ -21,8 +21,6 @@
     ((:file "core")
      (:file "coerce")
      (:file "encode")))
-   (:module "request"
-    :components
-    ((:file "encoding")))
+   (:file "encoding")
    (:file "utils"))
-  :perform (test-op (o c) (symbol-call :rove '#:run c)))
+  :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

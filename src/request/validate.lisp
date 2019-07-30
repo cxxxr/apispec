@@ -9,7 +9,7 @@
                 #:parameter-style
                 #:parameter-explode-p
                 #:parameter-schema)
-  (:import-from #:apispec/request/encoding
+  (:import-from #:apispec/encoding
                 #:parse-with-media-type
                 #:parse-complex-string
                 #:parse-complex-parameters)

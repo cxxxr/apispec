@@ -1,7 +1,7 @@
 (defpackage #:apispec/request/request-body
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/request/encoding
+  (:import-from #:apispec/encoding
                 #:media-type)
   (:import-from #:cl-ppcre
                 #:scan-to-strings)

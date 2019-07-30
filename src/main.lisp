@@ -53,6 +53,7 @@
 
            #:encode-data)
   (:mix-reexport #:apispec/header
+                 #:apispec/encoding
                  #:apispec/request
                  #:apispec/response
                  #:apispec/operation))

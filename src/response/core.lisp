@@ -3,7 +3,7 @@
         #:apispec/utils)
   (:import-from #:apispec/header
                 #:header)
-  (:import-from #:apispec/request
+  (:import-from #:apispec/encoding
                 #:media-type)
   (:export #:response
            #:response-description
