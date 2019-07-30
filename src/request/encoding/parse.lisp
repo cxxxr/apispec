@@ -171,7 +171,7 @@
      (error "Unexpected style: ~S" style))))
 
 (defun parse-complex-parameters (parameters name style explode schema)
-  (assert (association-list-p parameters 'string 'string))
+  (check-type parameters (association-list string string))
   (check-type name string)
   (cond
     ((equal style "form")

@@ -10,6 +10,8 @@
            #:undeclaim-safety))
 (in-package #:apispec/utils)
 
+(defpackage #:apispec/utils/lambda-predicate)
+
 (defun proper-list-p (object &optional (element-type t))
   (and (listp object)
        (null (cdr (last object)))
@@ -24,7 +26,8 @@
   (let ((fn (if (eq element-type t)
                 'proper-list-p
                 (or (gethash element-type *proper-list-type-checker*)
-                    (let ((fn (gensym (format nil "~A-PROPER-LIST" element-type))))
+                    (let ((fn (intern (format nil "~A-PROPER-LIST" element-type)
+                                      '#:apispec/utils/lambda-predicate)))
                       (setf (fdefinition fn)
                             (lambda (object)
                               (proper-list-p object element-type)))
@@ -51,7 +54,8 @@
                      (eq value-type t))
                 'simple-association-list-p
                 (or (gethash (cons key-type value-type) *association-list-type-checker*)
-                    (let ((fn (gensym (format nil "~A-ASSOCIATION-LIST" (cons key-type value-type)))))
+                    (let ((fn (intern (format nil "~S-ASSOCIATION-LIST" (cons key-type value-type))
+                                      '#:apispec/utils/lambda-predicate)))
                       (setf (fdefinition fn)
                             (lambda (object)
                               (association-list-p object key-type value-type)))

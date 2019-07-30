@@ -35,10 +35,10 @@
 (defun coerce-request (headers path-parameters query-string raw-body
                        parameters request-body)
   (check-type headers hash-table)
-  (assert (association-list-p path-parameters 'string 'string))
+  (check-type path-parameters (association-list string string))
   (check-type query-string (or string null))
   (check-type raw-body (or stream null))
-  (assert (proper-list-p parameters 'parameter))
+  (check-type parameters (proper-list parameter))
   (check-type request-body (or request-body null))
 
   (append
