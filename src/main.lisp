@@ -56,4 +56,5 @@
                  #:apispec/encoding
                  #:apispec/request
                  #:apispec/response
-                 #:apispec/operation))
+                 #:apispec/operation
+                 #:apispec/path))
