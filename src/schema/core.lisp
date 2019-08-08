@@ -297,7 +297,7 @@
                         (apply #'make-array-schema class initargs))))
 
 (defclass property ()
-  ((name :type (or cl:symbol cl:string)
+  ((name :type cl:string
          :initarg :name
          :initform (error ":name is required for PROPERTY")
          :reader property-name)
@@ -308,7 +308,7 @@
 
 (defclass object (schema)
   ((type :initform "object")
-   (required :type (proper-list (or cl:symbol cl:string))
+   (required :type (proper-list cl:string)
              :initarg :required
              :initform nil
              :reader object-required)
