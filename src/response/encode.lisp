@@ -1,13 +1,13 @@
 (defpackage #:apispec/response/encode
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/response/core
+  (:import-from #:apispec/response/class
                 #:responses
                 #:http-status-code
                 #:response-content)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
                 #:encode-data)
-  (:import-from #:apispec/encoding
+  (:import-from #:apispec/types/media-type
                 #:media-type-schema)
   (:import-from #:cl-ppcre)
   (:import-from #:assoc-utils

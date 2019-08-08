@@ -1,16 +1,16 @@
-(defpackage #:apispec/response/core
+(defpackage #:apispec/response/class
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/header
+  (:import-from #:apispec/types/header
                 #:header)
-  (:import-from #:apispec/encoding
+  (:import-from #:apispec/types/media-type
                 #:media-type)
   (:export #:response
            #:response-description
            #:response-headers
            #:response-content
            #:responses))
-(in-package #:apispec/response/core)
+(in-package #:apispec/response/class)
 
 (declaim-safety)
 

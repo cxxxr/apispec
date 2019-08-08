@@ -1,14 +1,14 @@
-(defpackage #:apispec/header
+(defpackage #:apispec/types/header
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
                 #:schema)
   (:export #:header
            #:header-required-p
            #:header-schema
            #:header-style
            #:header-explode-p))
-(in-package #:apispec/header)
+(in-package #:apispec/types/header)
 
 (declaim-safety)
 

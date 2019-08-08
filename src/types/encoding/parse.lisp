@@ -1,36 +1,19 @@
-(defpackage #:apispec/encoding/parse
+(defpackage #:apispec/types/encoding/parse
   (:use #:cl
         #:apispec/utils
         #:cl-utilities)
-  (:import-from #:apispec/encoding/core
-                #:media-type
-                #:media-type-encoding
-                #:media-type-schema
-                #:encoding-style
-                #:encoding-explode-p)
-  (:import-from #:apispec/schema
-                #:object
-                #:coerce-data
-                #:object-properties
-                #:property-name)
-  (:shadowing-import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
+                #:object)
+  (:shadowing-import-from #:apispec/types/schema
                           #:array)
   (:import-from #:cl-ppcre)
-  (:import-from #:babel
-                #:octets-to-string)
-  (:import-from #:http-body)
-  (:import-from #:http-body.util
-                #:detect-charset
-                #:slurp-stream)
   (:import-from #:alexandria
-                #:starts-with-subseq
                 #:when-let)
   (:import-from #:assoc-utils
                 #:aget)
   (:export #:parse-complex-string
-           #:parse-complex-parameters
-           #:parse-with-media-type))
-(in-package #:apispec/encoding/parse)
+           #:parse-complex-parameters))
+(in-package #:apispec/types/encoding/parse)
 
 (define-condition parse-failed (error)
   ((message :initarg :message))
@@ -187,37 +170,3 @@
     ((equal style "deepObject")
      (parse-deep-object-value parameters name))
     (t (error "Unexpected style: ~S" style))))
-
-(defun parse-with-media-type (stream media-type content-type content-length)
-  (check-type media-type media-type)
-  (check-type content-type string)
-  (check-type content-length (or integer null))
-  (let* ((value
-           (multiple-value-bind (parsed-value success)
-               (http-body:parse content-type nil stream)
-             (if success
-                 parsed-value
-                 (slurp-stream stream content-length))))
-         (value (if (starts-with-subseq "text/" content-type)
-                    (babel:octets-to-string value
-                                            :encoding (detect-charset content-type))
-                    value)))
-    (coerce-data
-     (if (and (media-type-encoding media-type)
-              (or (starts-with-subseq "application/x-www-form-urlencoded" content-type)
-                  (starts-with-subseq "multipart/form-data" content-type)))
-         (mapc (lambda (pair)
-                 (let ((encoding (aget (media-type-encoding media-type) (car pair)))
-                       (schema (and (media-type-schema media-type)
-                                    (find (car pair) (object-properties (media-type-schema media-type))
-                                          :key #'property-name
-                                          :test #'equal))))
-                   (when encoding
-                     (setf (cdr pair)
-                           (parse-complex-string (cdr pair)
-                                                 (encoding-style encoding)
-                                                 (encoding-explode-p encoding)
-                                                 schema)))))
-               value)
-         value)
-     (or (media-type-schema media-type) t))))

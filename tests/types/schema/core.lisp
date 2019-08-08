@@ -1,8 +1,8 @@
-(uiop:define-package #:apispec/tests/schema/core
-    (:mix #:apispec/schema/core
-          #:cl)
+(uiop:define-package #:apispec/tests/types/schema/core
+  (:mix #:apispec/types/schema/core
+        #:cl)
   (:use #:rove))
-(in-package #:apispec/tests/schema/core)
+(in-package #:apispec/tests/types/schema/core)
 
 (deftest number-tests
   (ok (typep (schema number) 'number))
@@ -17,13 +17,13 @@
   (testing "nullable"
     (let ((schema (schema (or cl:number null))))
       (ok (typep schema 'number))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))
     (let ((schema (schema (or null cl:number))))
       (ok (typep schema 'number))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))
     (let ((schema (schema (or (cl:number 0) null))))
       (ok (typep schema 'number))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))))
 
 (deftest string-tests
   (ok (typep (schema string) 'string))
@@ -61,10 +61,10 @@
   (testing "nullable"
     (let ((schema (schema (or object null))))
       (ok (typep schema 'object))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))
     (let ((schema (schema (or (object) null))))
       (ok (typep schema 'object))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))
     (let ((schema (schema (or (object (("name" string))) null))))
       (ok (typep schema 'object))
-      (ok (slot-value schema 'apispec/schema/core::nullable)))))
+      (ok (slot-value schema 'apispec/types/schema/core::nullable)))))

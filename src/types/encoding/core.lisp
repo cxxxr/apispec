@@ -1,20 +1,17 @@
-(defpackage #:apispec/encoding/core
+(defpackage #:apispec/types/encoding/core
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
                 #:schema)
-  (:import-from #:apispec/header
+  (:import-from #:apispec/types/header
                 #:header)
   (:export #:encoding
            #:encoding-content-type
            #:encoding-headers
            #:encoding-style
            #:encoding-explode-p
-           #:encoding-allow-reserved-p
-           #:media-type
-           #:media-type-schema
-           #:media-type-encoding))
-(in-package #:apispec/encoding/core)
+           #:encoding-allow-reserved-p))
+(in-package #:apispec/types/encoding/core)
 
 (declaim-safety)
 
@@ -54,15 +51,5 @@
         (if (equal style "form")
             t
             nil))))
-
-(defclass media-type ()
-  ((schema :type (or schema null)
-           :initarg :schema
-           :initform nil
-           :reader media-type-schema)
-   (encoding :type (association-list string encoding)
-             :initarg :encoding
-             :initform nil
-             :reader media-type-encoding)))
 
 (undeclaim-safety)

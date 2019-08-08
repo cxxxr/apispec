@@ -1,9 +1,9 @@
-(uiop:define-package #:apispec/tests/schema/encode
-    (:mix #:apispec/schema/core
+(uiop:define-package #:apispec/tests/types/schema/encode
+    (:mix #:apispec/types/schema/core
           #:cl)
-  (:use #:apispec/schema/encode
+  (:use #:apispec/types/schema/encode
         #:rove))
-(in-package #:apispec/tests/schema/encode)
+(in-package #:apispec/tests/types/schema/encode)
 
 (deftest encode-object-tests
   (ok (equal

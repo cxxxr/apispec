@@ -1,10 +1,10 @@
-(uiop:define-package #:apispec/schema/validate
-    (:mix #:apispec/schema/core
+(uiop:define-package #:apispec/types/schema/validate
+    (:mix #:apispec/types/schema/core
           #:cl)
   (:import-from #:cl-ppcre)
   (:export #:validation-failed
            #:validate-data))
-(in-package #:apispec/schema/validate)
+(in-package #:apispec/types/schema/validate)
 
 (define-condition validation-failed (error)
   ((value :initarg :value)

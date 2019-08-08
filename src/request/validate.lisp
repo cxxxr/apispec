@@ -1,7 +1,7 @@
 (defpackage #:apispec/request/validate
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/request/parameter
+  (:import-from #:apispec/request/classes/parameter
                 #:parameter
                 #:parameter-in
                 #:parameter-name
@@ -9,14 +9,15 @@
                 #:parameter-style
                 #:parameter-explode-p
                 #:parameter-schema)
-  (:import-from #:apispec/encoding
-                #:parse-with-media-type
-                #:parse-complex-string
-                #:parse-complex-parameters)
-  (:import-from #:apispec/request/request-body
+  (:import-from #:apispec/request/classes/request-body
                 #:request-body
                 #:request-body-media-type)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/encoding
+                #:parse-complex-string
+                #:parse-complex-parameters)
+  (:import-from #:apispec/types/media-type
+                #:parse-with-media-type)
+  (:import-from #:apispec/types/schema
                 #:coerce-data)
   (:import-from #:cl-ppcre
                 #:split)

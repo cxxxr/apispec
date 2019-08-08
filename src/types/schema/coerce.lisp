@@ -1,16 +1,16 @@
-(uiop:define-package #:apispec/schema/coerce
-    (:mix #:apispec/schema/core
-          #:cl)
-  (:use #:apispec/schema/validate
+(uiop:define-package #:apispec/types/schema/coerce
+  (:mix #:apispec/types/schema/core
+        #:cl)
+  (:use #:apispec/types/schema/validate
         #:apispec/utils
         #:parse-number)
-  (:import-from #:apispec/schema/core
+  (:import-from #:apispec/types/schema/core
                 #:parse-schema-definition)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
            #:coerce-data))
-(in-package #:apispec/schema/coerce)
+(in-package #:apispec/types/schema/coerce)
 
 (define-condition coerce-failed (error)
   ((value :initarg :value)

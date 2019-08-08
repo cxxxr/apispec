@@ -1,7 +1,7 @@
-(defpackage #:apispec/request/request-body
+(defpackage #:apispec/request/classes/request-body
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/encoding
+  (:import-from #:apispec/types/media-type
                 #:media-type)
   (:import-from #:cl-ppcre
                 #:scan-to-strings)
@@ -12,7 +12,7 @@
            #:request-body-content
            #:request-body-required-p
            #:request-body-media-type))
-(in-package #:apispec/request/request-body)
+(in-package #:apispec/request/classes/request-body)
 
 (declaim-safety)
 

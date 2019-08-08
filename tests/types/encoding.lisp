@@ -1,7 +1,7 @@
-(defpackage #:apispec/tests/encoding
+(defpackage #:apispec/tests/types/encoding
   (:use #:cl
         #:rove)
-  (:import-from #:apispec/encoding/parse
+  (:import-from #:apispec/types/encoding/parse
                 #:parse-matrix-value
                 #:parse-label-value
                 #:parse-form-value
@@ -9,10 +9,10 @@
                 #:parse-space-delimited-value
                 #:parse-pipe-delimited-value
                 #:parse-deep-object-value)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
                 #:schema
                 #:object))
-(in-package #:apispec/tests/encoding)
+(in-package #:apispec/tests/types/encoding)
 
 (deftest parse-matrix-value-tests
   (testing ":explode nil"

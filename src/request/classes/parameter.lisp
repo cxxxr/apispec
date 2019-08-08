@@ -1,7 +1,7 @@
-(defpackage #:apispec/request/parameter
+(defpackage #:apispec/request/classes/parameter
   (:use #:cl
         #:apispec/utils)
-  (:import-from #:apispec/schema
+  (:import-from #:apispec/types/schema
                 #:schema)
   (:export #:parameter
            #:parameter-name
@@ -11,7 +11,7 @@
            #:parameter-style
            #:parameter-explode-p
            #:parameter-allow-reserved-p))
-(in-package #:apispec/request/parameter)
+(in-package #:apispec/request/classes/parameter)
 
 (declaim-safety)
 

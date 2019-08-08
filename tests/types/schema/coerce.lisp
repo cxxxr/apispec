@@ -1,16 +1,16 @@
-(uiop:define-package #:apispec/tests/schema/coerce
-    (:mix #:apispec/schema/core
-          #:cl)
-  (:use #:apispec/schema/coerce
+(uiop:define-package #:apispec/tests/types/schema/coerce
+  (:mix #:apispec/types/schema/core
+        #:cl)
+  (:use #:apispec/types/schema/coerce
         #:rove)
-  (:import-from #:apispec/schema/validate
+  (:import-from #:apispec/types/schema/validate
                 #:validation-failed)
   (:import-from #:local-time
                 #:timestamp=
                 #:universal-to-timestamp)
   (:import-from #:assoc-utils
                 #:aget))
-(in-package #:apispec/tests/schema/coerce)
+(in-package #:apispec/tests/types/schema/coerce)
 
 (deftest coerce-number-tests
   (ok (eql (coerce-data 1 'number) 1))

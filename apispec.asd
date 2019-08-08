@@ -16,11 +16,13 @@
                "rove")
   :pathname "tests"
   :components
-  ((:module "schema"
+  ((:module "types" 
     :components
-    ((:file "core")
-     (:file "coerce")
-     (:file "encode")))
-   (:file "encoding")
+    ((:module "schema"
+      :components
+      ((:file "core")
+       (:file "coerce")
+       (:file "encode")))
+     (:file "encoding")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

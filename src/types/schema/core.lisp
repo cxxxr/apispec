@@ -1,4 +1,4 @@
-(defpackage #:apispec/schema/core
+(defpackage #:apispec/types/schema/core
   (:use #:cl
         #:apispec/utils)
   (:shadow #:number
@@ -64,7 +64,7 @@
            #:property
            #:property-name
            #:property-type))
-(in-package #:apispec/schema/core)
+(in-package #:apispec/types/schema/core)
 
 (declaim-safety)
 

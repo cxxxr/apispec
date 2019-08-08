@@ -1,6 +1,6 @@
-(defpackage #:apispec/schema/encode
+(defpackage #:apispec/types/schema/encode
   (:use #:cl)
-  (:shadowing-import-from #:apispec/schema/core
+  (:shadowing-import-from #:apispec/types/schema/core
                           #:make-schema
                           #:schema-nullable-p
                           #:boolean
@@ -11,7 +11,7 @@
                           #:parse-schema-definition)
   (:import-from #:jonathan)
   (:export #:encode-data))
-(in-package #:apispec/schema/encode)
+(in-package #:apispec/types/schema/encode)
 
 (defgeneric encode-data (value schema)
   (:method (value schema)
