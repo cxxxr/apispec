@@ -15,27 +15,6 @@
   (:export #:encode-response))
 (in-package #:apispec/response/encode)
 
-(defun parse-media-type (value)
-  (let ((matches
-          (nth-value 1
-                     (ppcre:scan-to-strings "^([0-9a-zA-Z!#$%&'+-.^_`|~]+|\\*)/([0-9a-zA-Z!#$%&'+-.^_`|~]+|\\*)$" value))))
-    (when matches
-      (values (aref matches 0) (aref matches 1)))))
-
-(defun match-content-type (pattern content-type)
-  (multiple-value-bind (type subtype)
-      (parse-media-type pattern)
-    (unless type
-      (error "Invalid media type: ~S" pattern))
-    (multiple-value-bind (type2 subtype2)
-        (parse-media-type content-type)
-      (unless type2
-        (error "Invalid content type: ~S" content-type))
-      (and (or (equal type "*")
-               (equal type type2))
-           (or (equal subtype "*")
-               (equal subtype subtype2))))))
-
 (defun find-response (status content-type responses)
   (check-type content-type string)
   (or (aget responses status)
