@@ -207,22 +207,20 @@
                         :explode (header-explode-p header))
     (header-schema header)))
 
-(defun check-encoding (value encoding content-type)
-  (when (encoding-content-type encoding)
+(defun check-encoding (encoding content-type headers)
+  (when (and content-type (encoding-content-type encoding))
     (handler-case (match-content-type (encoding-content-type encoding) content-type
                                       :comma-separated t)
       (error (e)
         (error 'encoding-mismatch
                :message (princ-to-string e)))))
   (when (and (encoding-headers encoding)
+             headers
              (starts-with-subseq (string-downcase content-type) "multipart/"))
-    (destructuring-bind (field-value metadata headers)
-        value
-      (declare (ignore field-value metadata))
-      (loop for (header-name . header-object) in (encoding-headers encoding)
-            for header-value = (gethash (string-downcase header-name) headers)
-            ;; Content-Type is ignored
-            if (not (string-equal header-name "content-type"))
-              do (check-header header-value header-object))))
+    (loop for (header-name . header-object) in (encoding-headers encoding)
+          for header-value = (gethash (string-downcase header-name) headers)
+          ;; Content-Type is ignored
+          if (not (string-equal header-name "content-type"))
+          do (check-header header-value header-object)))
 
   t)

@@ -112,7 +112,10 @@
 ;; Object Type
 
 (defmethod coerce-data (value (schema object))
-  (check-type value association-list)
+  (unless (typep value 'association-list)
+    (error 'coerce-failed
+           :value value
+           :schema schema))
 
   (let ((properties (object-properties schema)))
     (nconc
