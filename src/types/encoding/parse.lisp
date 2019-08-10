@@ -2,17 +2,30 @@
   (:use #:cl
         #:apispec/utils
         #:cl-utilities)
+  (:import-from #:apispec/types/encoding/core
+                #:encoding-headers
+                #:encoding-content-type)
   (:import-from #:apispec/types/schema
-                #:object)
+                #:object
+                #:coerce-data)
+  (:import-from #:apispec/types/header
+                #:header
+                #:header-required-p
+                #:header-schema
+                #:header-explode-p)
   (:shadowing-import-from #:apispec/types/schema
                           #:array)
   (:import-from #:cl-ppcre)
   (:import-from #:alexandria
-                #:when-let)
+                #:when-let
+                #:starts-with-subseq)
   (:import-from #:assoc-utils
                 #:aget)
   (:export #:parse-complex-string
-           #:parse-complex-parameters))
+           #:parse-complex-parameters
+           #:encoding-mismatch
+           #:check-header
+           #:check-encoding))
 (in-package #:apispec/types/encoding/parse)
 
 (define-condition parse-failed (error)
@@ -170,3 +183,46 @@
     ((equal style "deepObject")
      (parse-deep-object-value parameters name))
     (t (error "Unexpected style: ~S" style))))
+
+(define-condition encoding-mismatch (error)
+  ((message :initarg :message
+            :initform nil))
+  (:report (lambda (condition stream)
+             (with-slots (message) condition
+               (princ message stream)))))
+
+;; Perhaps this function is better to be in types/header package,
+;; however, its value are styled with 'simple' and have to be parsed with 'parse-simple-value',
+;; so, this is written here for preventing from dependency loop.
+(defun check-header (value header)
+  (check-type value (or string null))
+  (check-type header header)
+  (when (and (null value)
+             (header-required-p header))
+    (error 'encoding-mismatch
+           :message "Header is missing"))
+  (coerce-data
+    (parse-simple-value value
+                        :as (header-schema header)
+                        :explode (header-explode-p header))
+    (header-schema header)))
+
+(defun check-encoding (value encoding content-type)
+  (when (encoding-content-type encoding)
+    (handler-case (match-content-type (encoding-content-type encoding) content-type
+                                      :comma-separated t)
+      (error (e)
+        (error 'encoding-mismatch
+               :message (princ-to-string e)))))
+  (when (and (encoding-headers encoding)
+             (starts-with-subseq (string-downcase content-type) "multipart/"))
+    (destructuring-bind (field-value metadata headers)
+        value
+      (declare (ignore field-value metadata))
+      (loop for (header-name . header-object) in (encoding-headers encoding)
+            for header-value = (gethash (string-downcase header-name) headers)
+            ;; Content-Type is ignored
+            if (not (string-equal header-name "content-type"))
+              do (check-header header-value header-object))))
+
+  t)
