@@ -15,22 +15,21 @@
 (defun parse-body (value content-type)
   (check-type value (or string stream))
   (check-type content-type string)
-  (let ((content-type (string-downcase content-type)))
-    (cond
-      ((starts-with-subseq "application/json" content-type)
-       (etypecase value
-         (string (parse-json-string value content-type))
-         (stream (parse-json-stream value content-type))))
-      ((starts-with-subseq "application/x-www-form-urlencoded" content-type)
-       (etypecase value
-         (string (parse-urlencoded-string value))
-         (stream (parse-urlencoded-stream value))))
-      ((starts-with-subseq "multipart/" content-type)
-       (etypecase value
-         (string (parse-multipart-string value content-type))
-         (stream (parse-multipart-stream value content-type))))
-      ((starts-with-subseq "application/octet-stream" content-type)
-       (slurp-stream value))
-      (t
-       (babel:octets-to-string (slurp-stream value)
-                               :encoding (detect-charset content-type))))))
+  (cond
+    ((starts-with-subseq "application/json" (string-downcase content-type))
+     (etypecase value
+       (string (parse-json-string value content-type))
+       (stream (parse-json-stream value content-type))))
+    ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
+     (etypecase value
+       (string (parse-urlencoded-string value))
+       (stream (parse-urlencoded-stream value))))
+    ((starts-with-subseq "multipart/" (string-downcase content-type))
+     (etypecase value
+       (string (parse-multipart-string value content-type))
+       (stream (parse-multipart-stream value content-type))))
+    ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
+     (slurp-stream value))
+    (t
+     (babel:octets-to-string (slurp-stream value)
+                             :encoding (detect-charset content-type)))))

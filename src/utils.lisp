@@ -92,7 +92,7 @@
 
 (defun detect-charset (content-type &optional (default babel:*default-character-encoding*))
   (multiple-value-bind (type subtype charset)
-      (parse-content-type content-type)
+      (parse-media-type content-type)
     (declare (ignore type subtype))
     (cond
       ((null charset)

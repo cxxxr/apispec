@@ -103,9 +103,9 @@
                '(("R" . "100") ("G" . "200") ("B" . "150"))))))
 
 (deftest parse-space-delimited-value-tests
-  (ok (equalp (parse-space-delimited-value "blue%20black%20brown" :as (schema array))
+  (ok (equalp (parse-space-delimited-value "blue black brown" :as (schema array))
               #("blue" "black" "brown")))
-  (ok (equal (parse-space-delimited-value "R%20100%20G%20200%20B%20150" :as (schema object))
+  (ok (equal (parse-space-delimited-value "R 100 G 200 B 150" :as (schema object))
              '(("R" . "100") ("G" . "200") ("B" . "150")))))
 
 (deftest parse-pipe-delimited-value-tests
@@ -117,8 +117,7 @@
 (deftest parse-deep-object-value-tests
   (ok (equal (parse-deep-object-value '(("color[R]" . "100")
                                         ("color[G]" . "200")
-                                        ("color[B]" . "150"))
-                                      "color")
-             '(("R" . "100")
-               ("G" . "200")
-               ("B" . "150")))))
+                                        ("color[B]" . "150")))
+             '(("color" . (("R" . "100")
+                           ("G" . "200")
+                           ("B" . "150")))))))

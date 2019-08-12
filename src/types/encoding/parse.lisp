@@ -22,12 +22,13 @@
   (:import-from #:apispec/types/header
                 #:coerce-with-header)
   (:import-from #:apispec/types/complex
-                #:parse-complex-string)
+                #:parse-complex-parameters)
   (:import-from #:apispec/body
                 #:parse-body)
   (:import-from #:alexandria
                 #:starts-with-subseq)
-  (:export #:parse-with-encoding))
+  (:export #:parse-with-encoding
+           #:encoding-content-type-mismatch))
 (in-package #:apispec/types/encoding/parse)
 
 (define-condition encoding-content-type-mismatch (error)
@@ -42,15 +43,14 @@
     ((or number string boolean) "text/plain")
     (object "application/json")
     (array
-      (default-content-type (array-items schema)))
-    (null nil)))
+      (default-content-type (array-items schema)))))
 
 (defun parse-with-encoding (value encoding schema headers)
   (check-type encoding encoding)
   (check-type schema schema)
-  (check-type headers hash-table)
-  (let ((content-type (gethash "content-type" headers
-                               (default-content-type schema))))
+  (check-type headers (or hash-table null))
+  (let ((content-type (and headers
+                           (gethash "content-type" headers))))
     (when (and content-type
                (encoding-content-type encoding))
       (handler-case (match-content-type (encoding-content-type encoding)
@@ -59,14 +59,13 @@
         (error (e)
           (error 'encoding-content-type-mismatch
                  :message (princ-to-string e)))))
-    (let ((content-type (string-downcase
-                          (or content-type
-                              (encoding-content-type encoding)
-                              "text/plain"))))
+    (let ((content-type (or content-type
+                            (encoding-content-type encoding)
+                            (default-content-type schema))))
       (when (and (encoding-headers encoding)
                  headers
                  content-type
-                 (starts-with-subseq (string-downcase content-type) "multipart/"))
+                 (starts-with-subseq "multipart/" (string-downcase content-type)))
         (loop for (header-name . header-object) in (encoding-headers encoding)
               for header-name-downcased = (string-downcase header-name)
               for given-header-value = (gethash header-name-downcased headers)
@@ -77,14 +76,11 @@
       (multiple-value-bind (parsed-values parsed-headers)
           (parse-body value content-type)
         (declare (ignore parsed-headers))
-        (when (and (starts-with-subseq "application/x-www-form-urlencoded" content-type)
+        (when (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
                    (encoding-style encoding))
-          (mapc (lambda (pair)
-                  (setf (cdr pair)
-                        (parse-complex-string (cdr pair)
-                                              (encoding-style encoding)
-                                              (encoding-explode-p encoding)
-                                              schema)))
-                parsed-values))
-        ;; TODO: multipartのvalueは全部streamなので、coerceの時点で変換が必要
+          (setf parsed-values
+                (parse-complex-parameters parsed-values
+                                          (encoding-style encoding)
+                                          (encoding-explode-p encoding)
+                                          schema)))
         (coerce-data parsed-values schema)))))

@@ -21,6 +21,8 @@
       ((:file "core")
        (:file "coerce")
        (:file "encode")))
+     (:file "header")
+     (:file "encoding")
      (:file "complex")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

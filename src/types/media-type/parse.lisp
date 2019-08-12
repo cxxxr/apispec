@@ -36,11 +36,12 @@
                         (property (and (media-type-schema media-type)
                                        (find-object-property (media-type-schema media-type)
                                                              (car pair)))))
-                    (setf (cdr pair)
-                          (parse-with-encoding (cdr pair)
-                                               encoding
-                                               (property-type property)
-                                               (aget parsed-headers (car pair))))))
+                    (when property
+                      (setf (cdr pair)
+                            (parse-with-encoding (cdr pair)
+                                                 encoding
+                                                 (property-type property)
+                                                 (aget parsed-headers (car pair)))))))
                 parsed-values)
           parsed-values)
       (or (media-type-schema media-type) t))))

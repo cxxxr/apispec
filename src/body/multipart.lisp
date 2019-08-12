@@ -1,9 +1,18 @@
 (defpackage #:apispec/body/multipart
   (:use #:cl)
+  (:import-from #:apispec/body/json
+                #:parse-json-stream)
+  (:import-from #:apispec/body/urlencoded
+                #:parse-urlencoded-stream)
+  (:import-from #:apispec/utils
+                #:slurp-stream
+                #:detect-charset)
   (:import-from #:fast-http
                 #:make-multipart-parser)
   (:import-from #:flexi-streams)
   (:import-from #:babel)
+  (:import-from #:alexandria
+                #:starts-with-subseq)
   (:import-from #:cl-utilities
                 #:with-collectors)
   (:export #:parse-multipart-stream
@@ -17,8 +26,22 @@
     (let ((parser (make-multipart-parser
                     content-type
                     (lambda (name headers field-meta body)
+                      (declare (ignore field-meta))
                       (let ((content-type (gethash "content-type" headers)))
-                        (collect-body (cons name body))
+                        (collect-body
+                          (cons name
+                                (cond
+                                  ((starts-with-subseq "application/json" (string-downcase content-type))
+                                   (parse-json-stream body content-type))
+                                  ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
+                                   (parse-urlencoded-stream body))
+                                  ((starts-with-subseq "multipart/" (string-downcase content-type))
+                                   (parse-multipart-stream body content-type))
+                                  ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
+                                   body)
+                                  (t
+                                   (babel:octets-to-string (slurp-stream body)
+                                                           :encoding (detect-charset content-type))))))
                         (collect-headers (cons name headers)))))))
       (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
             for read-bytes = (read-sequence buffer stream)

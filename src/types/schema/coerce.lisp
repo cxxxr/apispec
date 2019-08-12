@@ -76,6 +76,9 @@
 (defmethod coerce-data ((value vector) (schema binary))
   value)
 
+(defmethod coerce-data ((value stream) (schema binary))
+  value)
+
 (defmethod coerce-data ((value cl:string) (schema date))
   (check-type value cl:string)
   (ppcre:register-groups-bind ((#'parse-integer year month date))
