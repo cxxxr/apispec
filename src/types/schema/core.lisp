@@ -63,7 +63,8 @@
            #:object-additional-properties
            #:property
            #:property-name
-           #:property-type))
+           #:property-type
+           #:find-object-property))
 (in-package #:apispec/types/schema/core)
 
 (declaim-safety)
@@ -441,5 +442,12 @@
   `(defclass ,name (,superclass)
      ()
      (:default-initargs ,@initargs)))
+
+(defun find-object-property (object property-name)
+  (check-type object object)
+  (check-type property-name cl:string)
+  (find property-name (object-properties object)
+        :key #'property-name
+        :test #'string=))
 
 (undeclaim-safety)

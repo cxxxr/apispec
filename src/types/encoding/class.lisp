@@ -1,27 +1,21 @@
-(defpackage #:apispec/types/encoding/core
+(defpackage #:apispec/types/encoding/class
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/types/schema
                 #:schema)
   (:import-from #:apispec/types/header
                 #:header)
+  (:import-from #:apispec/types/complex
+                #:complex-style)
   (:export #:encoding
            #:encoding-content-type
            #:encoding-headers
            #:encoding-style
            #:encoding-explode-p
            #:encoding-allow-reserved-p))
-(in-package #:apispec/types/encoding/core)
+(in-package #:apispec/types/encoding/class)
 
 (declaim-safety)
-
-(defun encoding-style-string-p (style)
-  (and (member style '("matrix" "label" "form" "simple" "spaceDelimited" "pipeDelimited" "deepObject")
-               :test #'equal)
-       t))
-
-(deftype encoding-style ()
-  '(satisfies encoding-style-string-p))
 
 (defclass encoding ()
   ((content-type :type (or string null)
@@ -32,7 +26,7 @@
             :initarg :headers
             :initform nil
             :reader encoding-headers)
-   (style :type encoding-style
+   (style :type complex-style
           :initarg :style
           :initform "form"
           :reader encoding-style)

@@ -1,7 +1,10 @@
-(defpackage #:apispec/utils
+(uiop:define-package #:apispec/utils
   (:use #:cl)
+  (:use-reexport #:apispec/utils/media-type)
   (:import-from #:trivial-cltl2
                 #:declaration-information)
+  (:import-from #:flexi-streams)
+  (:import-from #:babel)
   (:import-from #:cl-ppcre)
   (:export #:proper-list-p
            #:proper-list
@@ -9,8 +12,8 @@
            #:association-list
            #:declaim-safety
            #:undeclaim-safety
-           #:parse-media-type
-           #:match-content-type))
+           #:slurp-stream
+           #:detect-charset))
 (in-package #:apispec/utils)
 
 (defpackage #:apispec/utils/lambda-predicate)
@@ -77,27 +80,31 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (proclaim `(optimize ,,(intern (string :*previous-safety*) *package*)))))
 
-(defun parse-media-type (value)
-  (let ((matches
-          (nth-value 1
-                     (ppcre:scan-to-strings "^([0-9a-zA-Z!#$%&'+-.^_`|~]+|\\*)/([0-9a-zA-Z!#$%&'+-.^_`|~]+|\\*)" value))))
-    (when matches
-      (values (aref matches 0) (aref matches 1)))))
+(defun slurp-stream (stream)
+  (if (typep stream 'flex:vector-stream)
+      (coerce (flex::vector-stream-vector stream) '(simple-array (unsigned-byte 8) (*)))
+      (apply #'concatenate
+             '(simple-array (unsigned-byte 8) (*))
+             (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
+                   for read-bytes = (read-sequence buffer stream)
+                   collect (subseq buffer 0 read-bytes)
+                   while (= read-bytes 1024)))))
 
-(defun match-content-type (pattern content-type &key comma-separated)
-  (every (lambda (pattern)
-           (multiple-value-bind (type subtype)
-               (parse-media-type pattern)
-             (unless type
-               (error "Invalid media type: ~S" pattern))
-             (multiple-value-bind (type2 subtype2)
-                 (parse-media-type content-type)
-               (unless type2
-                 (error "Invalid content type: ~S" content-type))
-               (and (or (string= type "*")
-                        (string-equal type type2))
-                    (or (string= subtype "*")
-                        (string-equal subtype subtype2))))))
-         (if comma-separated
-             (ppcre:split "\\s*,\\s*" pattern)
-             (list pattern))))
+(defun detect-charset (content-type &optional (default babel:*default-character-encoding*))
+  (multiple-value-bind (type subtype charset)
+      (parse-content-type content-type)
+    (declare (ignore type subtype))
+    (cond
+      ((null charset)
+       default)
+      ((string-equal charset "utf-8")
+       :utf-8)
+      ((string-equal charset "euc-jp")
+       :eucjp)
+      ((or (string-equal charset "shift_jis")
+           (string-equal charset "shift-jis")
+           (string-equal charset "windows-31j"))
+       :cp932)
+      (t (or (find charset (babel:list-character-encodings)
+                   :test #'string-equal)
+             babel:*default-character-encoding*)))))

@@ -12,7 +12,7 @@
   (:import-from #:apispec/request/classes/request-body
                 #:request-body
                 #:request-body-media-type)
-  (:import-from #:apispec/types/encoding
+  (:import-from #:apispec/types/complex
                 #:parse-complex-string
                 #:parse-complex-parameters)
   (:import-from #:apispec/types/media-type
