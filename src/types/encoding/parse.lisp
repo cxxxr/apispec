@@ -79,6 +79,7 @@
       (multiple-value-bind (parsed-values parsed-headers)
           (let ((*multipart-force-stream* nil))
             (parse-body value content-type))
+        (declare (ignore parsed-headers))
         (when (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
                    (encoding-style encoding))
           (setf parsed-values

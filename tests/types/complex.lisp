@@ -117,7 +117,8 @@
 (deftest parse-deep-object-value-tests
   (ok (equal (parse-deep-object-value '(("color[R]" . "100")
                                         ("color[G]" . "200")
-                                        ("color[B]" . "150")))
+                                        ("color[B]" . "150"))
+                                      "color")
              '(("color" . (("R" . "100")
                            ("G" . "200")
                            ("B" . "150")))))))

@@ -26,5 +26,6 @@
      (:file "encoding")
      (:file "media-type")
      (:file "complex")))
+   (:file "request")
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

@@ -3,9 +3,10 @@
         #:apispec/utils)
   (:import-from #:apispec/types/schema
                 #:object
-                #:coerce-data
                 #:find-object-property
-                #:property-type)
+                #:property-type
+                #:schema
+                #:coerce-data)
   (:shadowing-import-from #:apispec/types/schema
                           #:array)
   (:import-from #:cl-ppcre)
@@ -27,6 +28,7 @@
            #:parse-pipe-delimited-value
            #:parse-deep-object-value
            #:parse-complex-string
+           #:parse-complex-parameter
            #:parse-complex-parameters))
 (in-package #:apispec/types/complex)
 
@@ -138,10 +140,11 @@
         (object
           (loop for (k v) on values by #'cddr
                 collect (cons k v)))
-        (otherwise
-          (error 'complex-parser-failed
-                 :message (format nil "~S can't be type '~A'" value (type-of as)))))
+        (otherwise value))
       (or as t))))
+
+(defun parse-comma-separated-value (value &key as)
+  (%parse-delimited-value "," value :as as))
 
 (defun parse-space-delimited-value (value &key as)
   (%parse-delimited-value " " value :as as))
@@ -149,15 +152,16 @@
 (defun parse-pipe-delimited-value (value &key as)
   (%parse-delimited-value "|" value :as as))
 
-(defun parse-deep-object-value (parameters)
+(defun parse-deep-object-value (parameters &optional name)
   (let ((results '()))
     (loop for (key . val) in parameters
           do (destructuring-bind (key prop)
                  (coerce
                   (nth-value 1 (ppcre:scan-to-strings "([^\\[]+)\\[([^\\]+])\\]" key))
                   'list)
-               (setf (aget results key)
-                     (append (aget results key) (list (cons prop val))))))
+               (when (or (null name) (string= name key))
+                 (setf (aget results key)
+                       (append (aget results key) (list (cons prop val)))))))
     results))
 
 (defun parse-complex-string (value style explode schema)
@@ -179,35 +183,57 @@
     (t
      (error "Unexpected style: ~S" style))))
 
-(defun parse-complex-parameters (alist style explode schema)
+(defun parse-complex-parameter (alist name style explode schema)
   (check-type alist (association-list string string))
-  (check-type schema object)
-  (cond
-    ((equal style "form")
-     (loop for (k . v) in alist
-           for property = (find-object-property schema k)
-           collect (cons k
-                         (if property
-                             (parse-form-value alist k
-                                               :as (property-type property)
-                                               :explode explode)
-                             v))))
-    ((equal style "spaceDelimited")
-     (loop for (k . v) in alist
-           for property = (find-object-property schema k)
-           collect (cons k
-                         (if property
-                             (parse-space-delimited-value v
-                                                          :as (property-type property))
-                             v))))
-    ((equal style "pipeDelimited")
-     (loop for (k . v) in alist
-           for property = (find-object-property schema k)
-           collect (cons k
-                         (if property
-                             (parse-pipe-delimited-value v
-                                                         :as (property-type property))
-                             v))))
-    ((equal style "deepObject")
-     (coerce-data (parse-deep-object-value alist) schema))
-    (t (error "Unexpected style: ~S" style))))
+  (check-type schema schema)
+  (coerce-data
+    (cond
+      ((equal style "form")
+       (if explode
+           (loop for (key . value) in alist
+                 if (string= key name)
+                 collect value)
+           (parse-comma-separated-value (aget alist name)
+                                        :as schema)))
+      ((equal style "spaceDelimited")
+       (parse-space-delimited-value (aget alist name)
+                                    :as schema))
+      ((equal style "pipeDelimited")
+       (parse-pipe-delimited-value (aget alist name)
+                                   :as schema))
+      ((equal style "deepObject")
+       (parse-deep-object-value alist name))
+      (t (error "Unexpected style: ~S" style)))
+    schema))
+
+(defun parse-complex-parameters (alist style explode schema)
+  (if explode
+      (let ((keys (remove-duplicates (mapcar #'car alist) :test #'string= :from-end t)))
+        (loop for key in keys
+              for value = (mapcar #'cdr
+                                  (remove-if-not
+                                    (lambda (pair)
+                                      (string= (car pair) key))
+                                    alist))
+              collect (cons key
+                            (typecase schema
+                              (array value)
+                              (otherwise (if (rest value)
+                                             value
+                                             (first value)))))))
+      (if (equal style "deepObject")
+          (parse-deep-object-value alist)
+          (loop for (key . val) in alist
+                collect (cons key
+                              (let* ((property (find-object-property schema key))
+                                     (schema (or (and property
+                                                      (property-type property))
+                                                 t)))
+                                (cond
+                                  ((equal style "form")
+                                   (parse-comma-separated-value val :as schema))
+                                  ((equal style "spaceDelimited")
+                                   (parse-space-delimited-value val :as schema))
+                                  ((equal style "pipeDelimited")
+                                   (parse-pipe-delimited-value val :as schema))
+                                  (t (error "Unexpected style: ~S" style)))))))))

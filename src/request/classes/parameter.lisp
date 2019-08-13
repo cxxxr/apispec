@@ -3,6 +3,8 @@
         #:apispec/utils)
   (:import-from #:apispec/types/schema
                 #:schema)
+  (:import-from #:apispec/types/complex
+                #:complex-style)
   (:export #:parameter
            #:parameter-name
            #:parameter-in
@@ -23,14 +25,6 @@
 (deftype parameter-in ()
   '(satisfies parameter-in-string-p))
 
-(defun parameter-style-string-p (style)
-  (and (member style '("matrix" "label" "form" "simple" "spaceDelimited" "pipeDelimited" "deepObject")
-               :test #'equal)
-       t))
-
-(deftype parameter-style ()
-  '(satisfies parameter-style-string-p))
-
 (defclass parameter ()
   ((name :type string
          :initarg :name
@@ -48,7 +42,7 @@
            :initarg :schema
            :initform nil
            :reader parameter-schema)
-   (style :type parameter-style
+   (style :type complex-style
           :initarg :style)
    (explode :type boolean
             :initarg :explode)

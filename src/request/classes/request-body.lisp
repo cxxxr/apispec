@@ -31,7 +31,7 @@
              :initform nil
              :reader request-body-required-p)))
 
-(defun request-body-media-type (request-body content-type)
+(defun find-request-body-media-type (request-body content-type)
   (let ((content (request-body-content request-body)))
     (cdr (or (find-if (lambda (type)
                         (starts-with-subseq type content-type))
