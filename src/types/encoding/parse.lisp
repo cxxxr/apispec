@@ -25,6 +25,8 @@
                 #:parse-complex-parameters)
   (:import-from #:apispec/body
                 #:parse-body)
+  (:import-from #:apispec/body/multipart
+                #:*multipart-force-stream*)
   (:import-from #:alexandria
                 #:starts-with-subseq)
   (:export #:parse-with-encoding
@@ -43,11 +45,12 @@
     ((or number string boolean) "text/plain")
     (object "application/json")
     (array
-      (default-content-type (array-items schema)))))
+      (default-content-type (array-items schema)))
+    ((eql t) "text/plain")))
 
 (defun parse-with-encoding (value encoding schema headers)
   (check-type encoding encoding)
-  (check-type schema schema)
+  (check-type schema (or schema (eql t)))
   (check-type headers (or hash-table null))
   (let ((content-type (and headers
                            (gethash "content-type" headers))))
@@ -74,8 +77,8 @@
               do (coerce-with-header given-header-value header-object)))
       ;; TODO: Respect encoding-allow-reserved-p if it's urlencoded.
       (multiple-value-bind (parsed-values parsed-headers)
-          (parse-body value content-type)
-        (declare (ignore parsed-headers))
+          (let ((*multipart-force-stream* nil))
+            (parse-body value content-type))
         (when (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
                    (encoding-style encoding))
           (setf parsed-values

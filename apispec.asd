@@ -10,6 +10,7 @@
 
 (defsystem "apispec/tests"
   :depends-on ("apispec"
+               "cl-interpol"
                "assoc-utils"
                "rove")
   :pathname "tests"
@@ -23,6 +24,7 @@
        (:file "encode")))
      (:file "header")
      (:file "encoding")
+     (:file "media-type")
      (:file "complex")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

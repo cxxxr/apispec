@@ -16,37 +16,47 @@
   (:import-from #:cl-utilities
                 #:with-collectors)
   (:export #:parse-multipart-stream
-           #:parse-multipart-string))
+           #:parse-multipart-string
+           #:*multipart-force-stream*))
 (in-package #:apispec/body/multipart)
+
+(defvar *multipart-force-stream* t)
 
 (defun parse-multipart-stream (stream content-type)
   (check-type stream stream)
   (check-type content-type string)
-  (with-collectors (collect-body collect-headers)
+  (let ((results (with-collectors (collect-body collect-headers)
     (let ((parser (make-multipart-parser
                     content-type
                     (lambda (name headers field-meta body)
                       (declare (ignore field-meta))
-                      (let ((content-type (gethash "content-type" headers)))
-                        (collect-body
-                          (cons name
-                                (cond
-                                  ((starts-with-subseq "application/json" (string-downcase content-type))
-                                   (parse-json-stream body content-type))
-                                  ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
-                                   (parse-urlencoded-stream body))
-                                  ((starts-with-subseq "multipart/" (string-downcase content-type))
-                                   (parse-multipart-stream body content-type))
-                                  ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
-                                   body)
-                                  (t
-                                   (babel:octets-to-string (slurp-stream body)
-                                                           :encoding (detect-charset content-type))))))
-                        (collect-headers (cons name headers)))))))
+                      (collect-body (cons name
+                                          (if *multipart-force-stream*
+                                              body
+                                              (let ((content-type (gethash "content-type" headers)))
+                                                (cond
+                                                  ((starts-with-subseq "application/json" (string-downcase content-type))
+                                                   (parse-json-stream body content-type))
+                                                  ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
+                                                   (parse-urlencoded-stream body))
+                                                  ((starts-with-subseq "multipart/" (string-downcase content-type))
+                                                   (parse-multipart-stream body content-type))
+                                                  ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
+                                                   body)
+                                                  (t
+                                                   (babel:octets-to-string (slurp-stream body)
+                                                                           :encoding (detect-charset content-type))))))))
+                      (collect-headers (cons name headers))))))
       (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
             for read-bytes = (read-sequence buffer stream)
             do (funcall parser (subseq buffer 0 read-bytes))
-            while (= read-bytes 1024)))))
+            while (= read-bytes 1024))))))
+    (if (every (lambda (pair) (null (car pair))) results)
+        (if (null (rest results))
+            ;; Single multipart chunk
+            (cdr (first results))
+            (mapcar #'cdr results))
+        results)))
 
 (defun parse-multipart-string (string content-type)
   (parse-multipart-stream
