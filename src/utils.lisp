@@ -8,10 +8,8 @@
   (:import-from #:cl-ppcre)
   (:export #:proper-list-p
            #:proper-list
-           #:generate-proper-list-type-checker-functions
            #:association-list-p
            #:association-list
-           #:generate-association-list-type-checker-functions
            #:declaim-safety
            #:undeclaim-safety
            #:slurp-stream
@@ -29,14 +27,6 @@
 
 (defvar *proper-list-type-checker*
   (make-hash-table :test 'equal))
-
-(defun generate-proper-list-type-checker-functions ()
-  `(progn
-     ,@(loop for key being each hash-key of *proper-list-type-checker*
-             collect `(defun ,(intern (format nil "~A-PROPER-LIST" key)
-                               '#:apispec/utils/lambda-predicate)
-                          (object)
-                        (proper-list-p object ',key)))))
 
 (deftype proper-list (&optional (element-type t))
   (let ((fn (if (eq element-type t)
@@ -64,14 +54,6 @@
 
 (defvar *association-list-type-checker*
   (make-hash-table :test 'equal))
-
-(defun generate-association-list-type-checker-functions ()
-  `(progn
-     ,@(loop for key being each hash-key of *association-list-type-checker*
-             collect `(defun ,(intern (format nil "~S-ASSOCIATION-LIST" key)
-                               '#:apispec/utils/lambda-predicate)
-                          (object)
-                        (association-list-p object ',(car key) ',(cdr key))))))
 
 (deftype association-list (&optional (key-type '(or symbol string)) (value-type t) )
   (let ((fn (if (and (equal key-type '(or symbol string))

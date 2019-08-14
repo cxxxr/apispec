@@ -60,6 +60,3 @@
                  #:apispec/classes/request-body
                  #:apispec/classes/response
                  #:apispec/classes/path))
-
-#.(apispec/utils:generate-proper-list-type-checker-functions)
-#.(apispec/utils:generate-association-list-type-checker-functions)

@@ -28,7 +28,7 @@
 
 (defun parse-query-string (query-string parameters)
   (check-type query-string (or null string))
-  (check-type parameters (proper-list query-parameter))
+  (assert (proper-list-p parameters 'query-parameter))
 
   (when query-string
     (let ((query-parameters (quri:url-decode-params query-string :lenient t)))
@@ -51,7 +51,7 @@
 
 (defun parse-path-parameters (path-parameters parameters)
   (check-type path-parameters (association-list string string))
-  (check-type parameters (proper-list path-parameter))
+  (assert (proper-list-p parameters 'path-parameter))
 
   (when path-parameters
     (loop for parameter in parameters
@@ -71,7 +71,7 @@
 
 (defun parse-headers (headers parameters)
   (check-type headers (or hash-table null))
-  (check-type parameters (proper-list header-parameter))
+  (assert (proper-list-p parameters 'header-parameter))
 
   (when headers
     (loop for parameter in parameters
@@ -94,7 +94,7 @@
 
 (defun parse-cookie-string (cookie-string parameters)
   (check-type cookie-string (or string null))
-  (check-type parameters (proper-list cookie-parameter))
+  (assert (proper-list-p parameters 'cookie-parameter))
 
   (when cookie-string
     (let ((cookies (quri:url-decode-params cookie-string :lenient t)))

@@ -38,7 +38,7 @@
 
 (defun encode-response (status headers data responses)
   (check-type status http-status-code)
-  (check-type headers (association-list string))
+  (assert (association-list-p headers 'string t))
   (check-type responses responses)
   ;; TODO: Think of the case when the Content-Type is not specified
   (let* ((content-type (aget headers "content-type"))
