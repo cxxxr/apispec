@@ -8,10 +8,15 @@
                 #:parse-simple-value
                 #:parse-space-delimited-value
                 #:parse-pipe-delimited-value
-                #:parse-deep-object-value)
+                #:parse-deep-object-value
+                #:parse-complex-parameter
+                #:parse-complex-parameters)
   (:import-from #:apispec/types/schema
                 #:schema
-                #:object))
+                #:object
+                #:coerce-failed)
+  (:import-from #:assoc-utils
+                #:alist=))
 (in-package #:apispec/tests/types/complex)
 
 (deftest parse-matrix-value-tests
@@ -119,6 +124,172 @@
                                         ("color[G]" . "200")
                                         ("color[B]" . "150"))
                                       "color")
-             '(("color" . (("R" . "100")
-                           ("G" . "200")
-                           ("B" . "150")))))))
+             '(("R" . "100")
+               ("G" . "200")
+               ("B" . "150")))))
+
+(deftest parse-complex-parameter-tests
+  (testing "form"
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue")
+                    ("color" . "black")
+                    ("color" . "brown"))
+                  "color"
+                  "form"
+                  t
+                  (schema
+                    (array :items 'string)))
+                #("blue" "black" "brown")))
+    (ok (equal (parse-complex-parameter
+                 '(("id" . "10")
+                   ("color" . "blue"))
+                 "color"
+                 "form"
+                 t
+                 (schema string))
+                "blue"))
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue,black,brown"))
+                  "color"
+                  "form"
+                  nil
+                  (schema
+                    (array :items 'string)))
+                #("blue" "black" "brown"))))
+  (testing "spaceDelimited"
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue black brown"))
+                  "color"
+                  "spaceDelimited"
+                  nil
+                  (schema
+                    (array :items 'string)))
+                #("blue" "black" "brown")))
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue"))
+                  "color"
+                  "spaceDelimited"
+                  nil
+                  (schema
+                    (array :items 'string)))
+                #("blue")))
+    (ok (equal (parse-complex-parameter
+                 '(("id" . "10")
+                   ("color" . "blue"))
+                 "color"
+                 "spaceDelimited"
+                 nil
+                 (schema string))
+               "blue")))
+  (testing "pipeDelimited"
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue|black|brown"))
+                  "color"
+                  "pipeDelimited"
+                  nil
+                  (schema
+                    (array :items 'string)))
+                #("blue" "black" "brown")))
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color" . "blue"))
+                  "color"
+                  "pipeDelimited"
+                  nil
+                  (schema
+                    (array :items 'string)))
+                #("blue")))
+    (ok (equal (parse-complex-parameter
+                 '(("id" . "10")
+                   ("color" . "blue"))
+                 "color"
+                 "pipeDelimited"
+                 nil
+                 (schema string))
+               "blue")))
+  (testing "deepObject"
+    (ok (equalp (parse-complex-parameter
+                  '(("id" . "10")
+                    ("color[R]" . "100")
+                    ("color[G]" . "200")
+                    ("color[B]" . "150"))
+                  "color"
+                  "deepObject"
+                  nil
+                  (schema
+                    (object
+                      ()
+                      :additional-properties 'integer)))
+                '(("R" . 100)
+                  ("G" . 200)
+                  ("B" . 150))))))
+
+(deftest parse-complex-parameters-tests
+  (ok (equalp (parse-complex-parameters
+                '(("id" . "10")
+                  ("color" . "blue")
+                  ("color" . "black")
+                  ("color" . "brown"))
+                "form"
+                t
+                (schema
+                  (object
+                    (("id" integer)
+                     ("color" (array :items 'string))))))
+              '(("id" . 10)
+                ("color" . #("blue" "black" "brown")))))
+  (ok (equalp (parse-complex-parameters
+                '(("id" . "10")
+                  ("color" . "blue,black,brown"))
+                "form"
+                nil
+                (schema
+                  (object
+                    (("id" integer)
+                     ("color" (array :items 'string))))))
+              '(("id" . 10)
+                ("color" . #("blue" "black" "brown")))))
+  (ok (equalp (parse-complex-parameters
+                '(("id" . "10")
+                  ("color" . "blue black brown"))
+                "spaceDelimited"
+                nil
+                (schema
+                  (object
+                    (("id" integer)
+                     ("color" (array :items 'string))))))
+              '(("id" . 10)
+                ("color" . #("blue" "black" "brown")))))
+  (ok (equalp (parse-complex-parameters
+                '(("id" . "10")
+                  ("color" . "blue|black|brown"))
+                "pipeDelimited"
+                nil
+                (schema
+                  (object
+                    (("id" integer)
+                     ("color" (array :items 'string))))))
+              '(("id" . 10)
+                ("color" . #("blue" "black" "brown")))))
+  (ok (alist= (parse-complex-parameters
+                '(("id" . "10")
+                  ("color[R]" . "100")
+                  ("color[G]" . "150")
+                  ("color[B]" . "200"))
+                "deepObject"
+                nil
+                (schema
+                  (object
+                    (("id" integer)
+                     ("color" (object
+                                ()
+                                :additional-properties 'integer))))))
+              '(("id" . 10)
+                ("color" . (("R" . 100)
+                            ("G" . 150)
+                            ("B" . 200)))))))

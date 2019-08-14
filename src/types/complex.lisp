@@ -16,7 +16,8 @@
   (:import-from #:alexandria
                 #:when-let)
   (:import-from #:assoc-utils
-                #:aget)
+                #:aget
+                #:alist-keys)
   (:export #:complex-parser-failed
            #:complex-style-string-p
            #:complex-style
@@ -140,7 +141,10 @@
         (object
           (loop for (k v) on values by #'cddr
                 collect (cons k v)))
-        (otherwise value))
+        (otherwise
+          (if (rest values)
+              values
+              (first values))))
       (or as t))))
 
 (defun parse-comma-separated-value (value &key as)
@@ -157,12 +161,17 @@
     (loop for (key . val) in parameters
           do (destructuring-bind (key prop)
                  (coerce
-                  (nth-value 1 (ppcre:scan-to-strings "([^\\[]+)\\[([^\\]+])\\]" key))
+                  (nth-value 1 (ppcre:scan-to-strings "([^\\[]*)(?:\\[([^\\]+])\\])?" key))
                   'list)
                (when (or (null name) (string= name key))
-                 (setf (aget results key)
-                       (append (aget results key) (list (cons prop val)))))))
-    results))
+                 (if prop
+                     (setf (aget results key)
+                           (append (aget results key)
+                                   (list (cons prop val))))
+                     (setf (aget results key) val)))))
+    (if name
+        (aget results name)
+        results)))
 
 (defun parse-complex-string (value style explode schema)
   (check-type value string)
@@ -192,7 +201,13 @@
        (if explode
            (loop for (key . value) in alist
                  if (string= key name)
-                 collect value)
+                 collect value into values
+                 finally
+                 (return
+                   (if (or (typep values '(or array object))
+                           (rest values))
+                       values
+                       (first values))))
            (parse-comma-separated-value (aget alist name)
                                         :as schema)))
       ((equal style "spaceDelimited")
@@ -207,33 +222,46 @@
     schema))
 
 (defun parse-complex-parameters (alist style explode schema)
+  (check-type schema object)
   (if explode
-      (let ((keys (remove-duplicates (mapcar #'car alist) :test #'string= :from-end t)))
+      (let ((keys (remove-duplicates (alist-keys alist) :test 'equal :from-end t)))
         (loop for key in keys
-              for value = (mapcar #'cdr
-                                  (remove-if-not
-                                    (lambda (pair)
-                                      (string= (car pair) key))
-                                    alist))
+              for values = (mapcar #'cdr
+                                   (remove-if-not
+                                     (lambda (pair)
+                                       (string= (car pair) key))
+                                     alist))
+              for key-property = (find-object-property schema key)
+              for key-schema = (or (and key-property
+                                        (property-type key-property))
+                                   t)
               collect (cons key
-                            (typecase schema
-                              (array value)
-                              (otherwise (if (rest value)
-                                             value
-                                             (first value)))))))
+                            (typecase key-schema
+                              ((or array object) (coerce-data values key-schema))
+                              (otherwise
+                                (coerce-data (if (rest values)
+                                                 values
+                                                 (first values))
+                                             key-schema))))))
       (if (equal style "deepObject")
-          (parse-deep-object-value alist)
+          (coerce-data (parse-deep-object-value alist) schema)
           (loop for (key . val) in alist
+                for key-property = (find-object-property schema key)
+                for key-schema = (or (and key-property
+                                          (property-type key-property))
+                                     t)
                 collect (cons key
-                              (let* ((property (find-object-property schema key))
-                                     (schema (or (and property
-                                                      (property-type property))
-                                                 t)))
-                                (cond
-                                  ((equal style "form")
-                                   (parse-comma-separated-value val :as schema))
-                                  ((equal style "spaceDelimited")
-                                   (parse-space-delimited-value val :as schema))
-                                  ((equal style "pipeDelimited")
-                                   (parse-pipe-delimited-value val :as schema))
-                                  (t (error "Unexpected style: ~S" style)))))))))
+                              (coerce-data
+                                (let ((values (cond
+                                                ((equal style "form")
+                                                 (parse-comma-separated-value val
+                                                                              :as key-schema))
+                                                ((equal style "spaceDelimited")
+                                                 (parse-space-delimited-value val
+                                                                              :as key-schema))
+                                                ((equal style "pipeDelimited")
+                                                 (parse-pipe-delimited-value val
+                                                                             :as key-schema))
+                                                (t (error "Unexpected style: ~S" style)))))
+                                  values)
+                                key-schema))))))
