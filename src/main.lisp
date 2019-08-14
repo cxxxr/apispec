@@ -1,7 +1,7 @@
 (uiop:define-package #:apispec
   (:nicknames #:apispec/main)
   (:mix #:cl
-        #:apispec/types/schema)
+        #:apispec/classes/schema)
   (:export #:schema
            #:schemap
            #:schema-type
@@ -52,10 +52,12 @@
            #:validate-data
 
            #:encode-data)
-  (:mix-reexport #:apispec/types/header
-                 #:apispec/types/encoding
-                 #:apispec/types/media-type
-                 #:apispec/request
-                 #:apispec/response
-                 #:apispec/operation
-                 #:apispec/path))
+  (:mix-reexport #:apispec/classes/header
+                 #:apispec/classes/encoding
+                 #:apispec/classes/media-type
+                 #:apispec/classes/operation
+                 #:apispec/classes/parameter
+                 #:apispec/classes/request-body
+                 #:apispec/classes/response
+                 #:apispec/classes/path
+                 #:apispec/request/validate))

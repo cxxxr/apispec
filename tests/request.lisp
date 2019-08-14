@@ -1,9 +1,11 @@
 (defpackage #:apispec/tests/request
   (:use #:cl
         #:rove
-        #:apispec/request)
-  (:import-from #:apispec/types/schema
+        #:apispec/request/validate)
+  (:import-from #:apispec/classes/schema
                 #:schema)
+  (:import-from #:apispec/classes/parameter
+                #:parameter)
   (:import-from #:assoc-utils
                 #:alist-hash))
 (in-package #:apispec/tests/request)

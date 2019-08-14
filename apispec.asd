@@ -15,7 +15,7 @@
                "rove")
   :pathname "tests"
   :components
-  ((:module "types"
+  ((:module "classes"
     :components
     ((:module "schema"
       :components
