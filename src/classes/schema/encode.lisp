@@ -15,10 +15,11 @@
 
 (defgeneric encode-data (value schema)
   (:method (value schema)
-    (jojo:%to-json (if (and (null value)
-                            (schema-nullable-p schema))
-                       :null
-                       value)))
+    (jojo:with-output-to-string*
+      (jojo:%to-json (if (and (null value)
+                              (schema-nullable-p schema))
+                         :null
+                         value))))
   (:method (value (schema symbol))
     (encode-data value (make-schema schema)))
   (:method (value (schema cons))
@@ -28,18 +29,20 @@
                    (apply #'make-schema type args)))))
 
 (defmethod encode-data (value (schema boolean))
-  (jojo:%to-json (if value
-                     t
-                     :false)))
+  (jojo:with-output-to-string*
+    (jojo:%to-json (if value
+                       t
+                       :false))))
 
 (defmethod encode-data (value (schema object))
-  (jojo:with-object
-    (loop for prop in (object-properties schema)
-          for (key . field-value) = (find (property-name prop)
-                                          value
-                                          :key #'car
-                                          :test #'equal)
-          when key
+  (jojo:with-output-to-string*
+    (jojo:with-object
+      (loop for prop in (object-properties schema)
+            for (key . field-value) = (find (property-name prop)
+                                            value
+                                            :key #'car
+                                            :test #'equal)
+            when key
             do (jojo:write-key (cl:string key))
-               (write-char #\: jonathan.encode::*stream*)
-               (encode-data field-value (property-type prop)))))
+            (jojo:%write-char #\:)
+            (jojo:%write-string (encode-data field-value (property-type prop)))))))

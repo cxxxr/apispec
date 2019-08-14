@@ -42,8 +42,11 @@
        (and string
             (satisfies default-response-p))))
 
+(defun responsesp (responses)
+  (and (not (null responses))
+       (association-list-p responses 'responses-keys 'response)))
+
 (deftype responses ()
-  '(and (association-list responses-keys response)
-        (not null)))
+  '(satisfies responsesp))
 
 (undeclaim-safety)
