@@ -31,5 +31,7 @@
     ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
      (slurp-stream value))
     (t
-     (babel:octets-to-string (slurp-stream value)
-                             :encoding (detect-charset content-type)))))
+     (etypecase value
+       (string value)
+       (stream (babel:octets-to-string (slurp-stream value)
+                                       :encoding (detect-charset content-type)))))))

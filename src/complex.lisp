@@ -193,7 +193,7 @@
      (error "Unexpected style: ~S" style))))
 
 (defun parse-complex-parameter (alist name style explode schema)
-  (check-type alist (association-list string string))
+  (assert (association-list-p alist 'string 'string))
   (check-type schema schema)
   (coerce-data
     (cond
