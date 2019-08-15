@@ -29,6 +29,7 @@
      (:file "media-type")
      (:file "response")
      (:file "path")
+     (:file "operation")
      (:file "complex")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

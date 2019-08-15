@@ -50,7 +50,7 @@
                                                    (parameter-schema parameter)))))))
 
 (defun parse-path-parameters (path-parameters parameters)
-  (check-type path-parameters (association-list string string))
+  (assert (association-list-p path-parameters 'string 'string))
   (assert (proper-list-p parameters 'path-parameter))
 
   (when path-parameters
@@ -75,7 +75,7 @@
 
   (when headers
     (loop for parameter in parameters
-          for value = (gethash (parameter-name parameter) headers *empty*)
+          for value = (gethash (string-downcase (parameter-name parameter)) headers *empty*)
           if (eq value *empty*)
           collect (cons (parameter-name parameter)
                         (if (parameter-required-p parameter)
@@ -92,12 +92,17 @@
                                                 (parameter-schema parameter))
                           (parameter-schema parameter))))))
 
+(defun decode-cookie-params (cookie-string)
+  (loop for part in (ppcre:split "\\s*;\\s*" cookie-string)
+        for (key value) = (ppcre:split "=" part :limit 2)
+        collect (cons key value)))
+
 (defun parse-cookie-string (cookie-string parameters)
   (check-type cookie-string (or string null))
   (assert (proper-list-p parameters 'cookie-parameter))
 
   (when cookie-string
-    (let ((cookies (quri:url-decode-params cookie-string :lenient t)))
+    (let ((cookies (decode-cookie-params cookie-string)))
       (loop for parameter in parameters
             for value = (aget cookies (parameter-name parameter) *empty*)
             if (eq value *empty*)
