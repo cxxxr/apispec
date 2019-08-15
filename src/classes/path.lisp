@@ -86,8 +86,11 @@
       (:trace #'path-item-trace))
     path))
 
+(defun paths-p (object)
+  (association-list-p object 'string 'path-item))
+
 (deftype paths ()
-  '(association-list string path-item))
+  '(satisfies paths-p))
 
 (defun compile-paths (paths)
   (assert (typep paths 'paths))
