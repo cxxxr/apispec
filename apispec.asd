@@ -28,6 +28,7 @@
      (:file "request-body")
      (:file "media-type")
      (:file "response")
+     (:file "path")
      (:file "complex")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))
