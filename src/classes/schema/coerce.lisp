@@ -9,7 +9,8 @@
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-failed
-           #:coerce-data))
+           #:coerce-data
+           #:*coerce-integer-string-to-boolean*))
 (in-package #:apispec/classes/schema/coerce)
 
 (define-condition coerce-failed (error)
@@ -89,13 +90,17 @@
   (check-type value cl:string)
   (local-time:parse-rfc3339-timestring value))
 
+(defvar *coerce-integer-string-to-boolean* nil)
+
 (defmethod coerce-data (value (schema boolean))
   (etypecase value
     (cl:string
-     (cond
-       ((equal value "true") t)
-       ((equal value "false") nil)
-       (t (error 'coerce-failed :value value :schema schema))))
+      (unless *coerce-integer-string-to-boolean*
+        (error 'coerce-failed :value value :schema schema))
+      (cond
+        ((equal value "1") t)
+        ((equal value "0") nil)
+        (t (error 'coerce-failed :value value :schema schema))))
     (cl:boolean value)))
 
 

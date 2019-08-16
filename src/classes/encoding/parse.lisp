@@ -12,7 +12,8 @@
                 #:binary
                 #:object
                 #:array-items
-                #:coerce-data)
+                #:coerce-data
+                #:*coerce-integer-string-to-boolean*)
   (:shadowing-import-from #:apispec/classes/schema
                           #:byte
                           #:number
@@ -87,4 +88,6 @@
                                           (encoding-style encoding)
                                           (encoding-explode-p encoding)
                                           schema)))
-        (coerce-data parsed-values schema)))))
+        (let ((*coerce-integer-string-to-boolean*
+                (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))))
+          (coerce-data parsed-values schema))))))

@@ -6,7 +6,8 @@
                 #:find-object-property
                 #:property-type
                 #:schema
-                #:coerce-data)
+                #:coerce-data
+                #:*coerce-integer-string-to-boolean*)
   (:shadowing-import-from #:apispec/classes/schema
                           #:array)
   (:import-from #:cl-ppcre)
@@ -98,26 +99,27 @@
       (values (ppcre:scan-to-strings "(?<=\\.)([^\\.]+)" value)))))
 
 (defun parse-form-value (parameters name &key as explode)
-  (coerce-data
-    (typecase as
-      (array
-        (if explode
-            (map 'vector #'cdr
-                 (remove-if-not (lambda (param-name)
-                                  (equal param-name name))
-                                parameters
-                                :key #'car))
-            (when-let (val (aget parameters name))
-              (coerce (ppcre:split "," val) 'vector))))
-      (object
-        (if explode
-            parameters
-            (when-let (val (aget parameters name))
-              (loop for (k v) on (ppcre:split "," val) by #'cddr
-                    collect (cons k v)))))
-      (otherwise
-        (aget parameters name)))
-    (or as t)))
+  (let ((*coerce-integer-string-to-boolean* t))
+    (coerce-data
+      (typecase as
+        (array
+          (if explode
+              (map 'vector #'cdr
+                   (remove-if-not (lambda (param-name)
+                                    (equal param-name name))
+                                  parameters
+                                  :key #'car))
+              (when-let (val (aget parameters name))
+                (coerce (ppcre:split "," val) 'vector))))
+        (object
+          (if explode
+              parameters
+              (when-let (val (aget parameters name))
+                (loop for (k v) on (ppcre:split "," val) by #'cddr
+                      collect (cons k v)))))
+        (otherwise
+          (aget parameters name)))
+      (or as t))))
 
 (defun parse-simple-value (value &key as explode)
   (let ((key-values (ppcre:split "," value)))
@@ -195,31 +197,32 @@
 (defun parse-complex-parameter (alist name style explode schema)
   (assert (association-list-p alist 'string 'string))
   (check-type schema schema)
-  (coerce-data
-    (cond
-      ((equal style "form")
-       (if explode
-           (loop for (key . value) in alist
-                 if (string= key name)
-                 collect value into values
-                 finally
-                 (return
-                   (if (or (typep values '(or array object))
-                           (rest values))
-                       values
-                       (first values))))
-           (parse-comma-separated-value (aget alist name)
-                                        :as schema)))
-      ((equal style "spaceDelimited")
-       (parse-space-delimited-value (aget alist name)
-                                    :as schema))
-      ((equal style "pipeDelimited")
-       (parse-pipe-delimited-value (aget alist name)
-                                   :as schema))
-      ((equal style "deepObject")
-       (parse-deep-object-value alist name))
-      (t (error "Unexpected style: ~S" style)))
-    schema))
+  (let ((*coerce-integer-string-to-boolean* (string= style "form")))
+    (coerce-data
+      (cond
+        ((equal style "form")
+         (if explode
+             (loop for (key . value) in alist
+                   if (string= key name)
+                   collect value into values
+                   finally
+                   (return
+                     (if (or (typep values '(or array object))
+                             (rest values))
+                         values
+                         (first values))))
+             (parse-comma-separated-value (aget alist name)
+                                          :as schema)))
+        ((equal style "spaceDelimited")
+         (parse-space-delimited-value (aget alist name)
+                                      :as schema))
+        ((equal style "pipeDelimited")
+         (parse-pipe-delimited-value (aget alist name)
+                                     :as schema))
+        ((equal style "deepObject")
+         (parse-deep-object-value alist name))
+        (t (error "Unexpected style: ~S" style)))
+      schema)))
 
 (defun parse-complex-parameters (alist style explode schema)
   (check-type schema object)

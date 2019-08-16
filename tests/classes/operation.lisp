@@ -43,10 +43,15 @@
                          (make-instance 'parameter
                                         :name "role"
                                         :in "query"
-                                        :schema (schema string))))))
+                                        :schema (schema string))
+                         (make-instance 'parameter
+                                        :name "debug"
+                                        :in "query"
+                                        :schema (schema boolean))))))
       (ok (equalp (validate-request operation
-                                    '(:query-string "role=admin"))
-                  '(("role" . "admin"))))))
+                                    '(:query-string "role=admin&debug=0"))
+                  '(("role" . "admin")
+                    ("debug" . nil))))))
   (testing "header"
     (let ((operation (make-operation
                        (list
@@ -65,7 +70,7 @@
                          (make-instance 'parameter
                                         :name "debug"
                                         :in "cookie"
-                                        :schema (schema integer))
+                                        :schema (schema boolean))
                          (make-instance 'parameter
                                         :name "csrftoken"
                                         :in "cookie"
@@ -74,5 +79,5 @@
                                     (list
                                       :headers (alist-hash
                                                  `(("cookie" . "debug=0; csrftoken=BUSe35dohU3O1MZvDCU")))))
-                  '(("debug" . 0)
+                  '(("debug" . nil)
                     ("csrftoken" . "BUSe35dohU3O1MZvDCU")))))))

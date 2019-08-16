@@ -3,7 +3,8 @@
         #:apispec/utils
         #:apispec/classes/parameter/class)
   (:import-from #:apispec/classes/schema
-                #:coerce-data)
+                #:coerce-data
+                #:*coerce-integer-string-to-boolean*)
   (:import-from #:apispec/complex
                 #:parse-complex-string
                 #:parse-complex-parameter)
@@ -114,10 +115,11 @@
                               nil))
             else
             collect (cons (parameter-name parameter)
-                          (coerce-data
-                            (parse-complex-parameter cookies
-                                                     (parameter-name parameter)
-                                                     (parameter-style parameter)
-                                                     (parameter-explode-p parameter)
-                                                     (parameter-schema parameter))
-                            (parameter-schema parameter)))))))
+                          (let ((*coerce-integer-string-to-boolean* t))
+                            (coerce-data
+                              (parse-complex-parameter cookies
+                                                       (parameter-name parameter)
+                                                       (parameter-style parameter)
+                                                       (parameter-explode-p parameter)
+                                                       (parameter-schema parameter))
+                              (parameter-schema parameter))))))))

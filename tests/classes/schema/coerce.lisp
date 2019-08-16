@@ -42,8 +42,11 @@
     (ok (= (local-time:timestamp-hour date) 1))
     (ok (= (local-time:timestamp-minute date) 2))
     (ok (= (local-time:timestamp-second date) 3)))
-  (ok (eq (coerce-data "true" 'boolean) t))
-  (ok (eq (coerce-data "false" 'boolean) nil))
+  (ok (signals (coerce-data "1" 'boolean)))
+  (ok (signals (coerce-data "0" 'boolean)))
+  (let ((*coerce-integer-string-to-boolean* t))
+    (ok (eq (coerce-data "1" 'boolean) t))
+    (ok (eq (coerce-data "0" 'boolean) nil)))
   (ok (eq (coerce-data t 'boolean) t))
   (ok (eq (coerce-data nil 'boolean) nil)))
 
