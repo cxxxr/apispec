@@ -5,7 +5,8 @@
                 #:response
                 #:responses
                 #:http-status-code
-                #:response-content)
+                #:response-content
+                #:response-headers)
   (:import-from #:apispec/classes/media-type
                 #:media-type-schema)
   (:import-from #:apispec/body
@@ -75,11 +76,8 @@
                                             (string-downcase header-name))
                 append (list (intern (string-upcase header-name) :keyword)
                              header-value))
-          (list (cond
-                  ((and (consp data)
-                        (string= content-type "application/json"))
-                   (if (and media-type
-                            (media-type-schema media-type))
-                       (encode-data data 'json-encoder (media-type-schema media-type))
-                       (jojo:to-json data :from :alist)))
-                  (t data))))))
+          (list (encode-data data
+                             (or (and media-type
+                                      (media-type-schema media-type))
+                                 t)
+                             content-type)))))

@@ -20,8 +20,7 @@
     ((:module "schema"
       :components
       ((:file "core")
-       (:file "coerce")
-       (:file "encode")))
+       (:file "coerce")))
      (:file "header")
      (:file "encoding")
      (:file "parameter")
@@ -30,9 +29,9 @@
      (:file "response")
      (:file "path")
      (:file "operation")
-     (:file "complex")
-     (:module "body"
-      :components
-      ((:file "encode")))))
+     (:file "complex")))
+   (:module "body"
+    :components
+    ((:file "encode")))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))
