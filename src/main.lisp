@@ -59,4 +59,5 @@
                  #:apispec/classes/parameter
                  #:apispec/classes/request-body
                  #:apispec/classes/response
-                 #:apispec/classes/path))
+                 #:apispec/classes/path
+                 #:apispec/body))

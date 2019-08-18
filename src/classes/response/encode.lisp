@@ -6,10 +6,10 @@
                 #:responses
                 #:http-status-code
                 #:response-content)
-  (:import-from #:apispec/classes/schema
-                #:encode-data)
   (:import-from #:apispec/classes/media-type
                 #:media-type-schema)
+  (:import-from #:apispec/body
+                #:encode-data)
   (:import-from #:cl-ppcre)
   (:import-from #:assoc-utils
                 #:aget)
@@ -70,6 +70,9 @@
          (media-type (find-media-type response content-type)))
     (list status
           (loop for (header-name . header-value) in headers
+                ;; TODO: Header validation
+                for response-header = (aget (response-headers response)
+                                            (string-downcase header-name))
                 append (list (intern (string-upcase header-name) :keyword)
                              header-value))
           (list (cond
@@ -77,6 +80,6 @@
                         (string= content-type "application/json"))
                    (if (and media-type
                             (media-type-schema media-type))
-                       (encode-data data (media-type-schema media-type))
+                       (encode-data data 'json-encoder (media-type-schema media-type))
                        (jojo:to-json data :from :alist)))
                   (t data))))))

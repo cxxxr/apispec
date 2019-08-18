@@ -30,6 +30,9 @@
      (:file "response")
      (:file "path")
      (:file "operation")
-     (:file "complex")))
+     (:file "complex")
+     (:module "body"
+      :components
+      ((:file "encode")))))
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))

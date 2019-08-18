@@ -1,4 +1,4 @@
-(defpackage #:apispec/body/urlencoded
+(defpackage #:apispec/body/parser/urlencoded
   (:use #:cl)
   (:import-from #:apispec/utils
                 #:slurp-stream)
@@ -6,7 +6,7 @@
                 #:url-decode-params)
   (:export #:parse-urlencoded-stream
            #:parse-urlencoded-string))
-(in-package #:apispec/body/urlencoded)
+(in-package #:apispec/body/parser/urlencoded)
 
 (defun parse-urlencoded-stream (stream)
   (url-decode-params (slurp-stream stream) :lenient t))

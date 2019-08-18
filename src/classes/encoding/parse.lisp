@@ -26,7 +26,7 @@
                 #:parse-complex-parameters)
   (:import-from #:apispec/body
                 #:parse-body)
-  (:import-from #:apispec/body/multipart
+  (:import-from #:apispec/body/parser/multipart
                 #:*multipart-force-stream*)
   (:import-from #:alexandria
                 #:starts-with-subseq)

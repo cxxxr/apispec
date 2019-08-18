@@ -1,8 +1,8 @@
-(defpackage #:apispec/body/multipart
+(defpackage #:apispec/body/parser/multipart
   (:use #:cl)
-  (:import-from #:apispec/body/json
+  (:import-from #:apispec/body/parser/json
                 #:parse-json-stream)
-  (:import-from #:apispec/body/urlencoded
+  (:import-from #:apispec/body/parser/urlencoded
                 #:parse-urlencoded-stream)
   (:import-from #:apispec/utils
                 #:slurp-stream
@@ -18,7 +18,7 @@
   (:export #:parse-multipart-stream
            #:parse-multipart-string
            #:*multipart-force-stream*))
-(in-package #:apispec/body/multipart)
+(in-package #:apispec/body/parser/multipart)
 
 (defvar *multipart-force-stream* t)
 

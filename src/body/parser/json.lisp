@@ -1,4 +1,4 @@
-(defpackage #:apispec/body/json
+(defpackage #:apispec/body/parser/json
   (:use #:cl)
   (:import-from #:apispec/utils
                 #:detect-charset
@@ -7,7 +7,7 @@
   (:import-from #:babel)
   (:export #:parse-json-stream
            #:parse-json-string))
-(in-package #:apispec/body/json)
+(in-package #:apispec/body/parser/json)
 
 (defun parse-json-stream (stream content-type)
   (jojo:parse
