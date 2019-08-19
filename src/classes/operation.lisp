@@ -11,7 +11,8 @@
   (:import-from #:apispec/classes/request-body
                 #:request-body)
   (:import-from #:apispec/classes/response
-                #:responses)
+                #:responses
+                #:encode-response)
   (:export #:operation
            #:operation-tags
            #:operation-summary
@@ -21,7 +22,8 @@
            #:operation-request-body
            #:operation-responses
            #:operation-deprecated-p
-           #:validate-request))
+           #:validate-request
+           #:validate-response))
 (in-package #:apispec/classes/operation)
 
 (declaim-safety)
@@ -92,5 +94,11 @@
                     (parse-cookie-string
                       (gethash "cookie" headers)
                       operation-cookie-parameters)))))))))
+
+(defun validate-response (operation status headers data)
+  (encode-response status
+                   headers
+                   data
+                   (operation-responses operation)))
 
 (undeclaim-safety)
