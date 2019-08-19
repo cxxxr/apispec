@@ -51,14 +51,22 @@
            (error 'response-not-defined
                   :content-type content-type))))
 
+(defun default-content-type (data)
+  (cond
+    ((association-list-p data 'string t)
+     "application/json")
+    ((typep data '(vector (unsigned-byte 8)))
+     "application/octet-stream")
+    (t "text/plain")))
+
 (defun encode-response (status headers data responses)
   (check-type status (integer 100 599))
   (assert (association-list-p headers 'string t))
   (check-type responses responses)
-  ;; TODO: Think of the case when the Content-Type is not specified
   (let* ((content-type (aget headers "content-type"))
-         (content-type (and (stringp content-type)
-                            (ppcre:scan-to-strings "[^;\\s]+" content-type)))
+         (content-type (or (and (stringp content-type)
+                                (ppcre:scan-to-strings "[^;\\s]+" content-type))
+                           (default-content-type data)))
          (response (find-response responses status))
          (media-type (find-media-type response content-type)))
     (list status
