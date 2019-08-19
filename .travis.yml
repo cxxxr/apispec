@@ -17,7 +17,8 @@ matrix:
 install:
   # Roswell
   - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
-  - ros install fukamachi/rove fukamachi/cl-coveralls
+  - ros install fukamachi/rove
+  - if [ "$COVERAGE" = "1" ]; then ros install fukamachi/cl-coveralls; fi
 
 script:
   - rove apispec.asd
