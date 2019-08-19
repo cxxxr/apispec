@@ -22,6 +22,8 @@ install:
 
 script:
   - rove apispec.asd
+
+after_script:
   - if [ "$COVERAGE" = "1" ]; then
       coveralls report/;
     fi
