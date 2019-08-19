@@ -1,29 +1,26 @@
 (defpackage #:apispec/classes/parameter/parse
   (:use #:cl
         #:apispec/utils
-        #:apispec/classes/parameter/class)
+        #:apispec/classes/parameter/class
+        #:apispec/classes/parameter/errors)
   (:import-from #:apispec/classes/schema
                 #:coerce-data
                 #:*coerce-integer-string-to-boolean*)
   (:import-from #:apispec/complex
                 #:parse-complex-string
                 #:parse-complex-parameter)
+  (:import-from #:apispec/errors
+                #:apispec-error)
   (:import-from #:quri
                 #:url-decode-params)
   (:import-from #:assoc-utils
-                #:aget)
-  (:export #:parameter-validation-failed
-           #:parse-query-string
+                #:aget
+                #:delete-from-alist)
+  (:export #:parse-query-string
            #:parse-path-parameters
            #:parse-headers
            #:parse-cookie-string))
 (in-package #:apispec/classes/parameter/parse)
-
-(define-condition parameter-validation-failed (error)
-  ((message :type string
-            :initarg :message))
-  (:report (lambda (condition stream)
-             (princ (slot-value condition 'message) stream))))
 
 (defvar *empty* '#:empty)
 
@@ -31,67 +28,109 @@
   (check-type query-string (or null string))
   (assert (proper-list-p parameters 'query-parameter))
 
-  (when query-string
-    (let ((query-parameters (quri:url-decode-params query-string :lenient t)))
-      (loop for parameter in parameters
-            for value = (aget query-parameters (parameter-name parameter) *empty*)
-            if (eq value *empty*)
-            collect (cons (parameter-name parameter)
-                          (if (parameter-required-p parameter)
-                              (error 'parameter-validation-failed
-                                     :message (format nil "Query parameter ~S is required but missing"
-                                                      (parameter-name parameter)))
-                              nil))
-            else
-            collect (cons (parameter-name parameter)
-                          (parse-complex-parameter query-parameters
-                                                   (parameter-name parameter)
-                                                   (parameter-style parameter)
-                                                   (parameter-explode-p parameter)
-                                                   (parameter-schema parameter)))))))
+  (let ((query-parameters (and query-string
+                               (handler-case
+                                   (quri:url-decode-params query-string :lenient t)
+                                 ((or quri:uri-malformed-urlencoded-string
+                                      quri:url-decoding-error) ()
+                                   (error 'parameter-parse-failed
+                                          :value query-string)))))
+        results missing invalid)
+    (dolist (parameter parameters)
+      (let* ((name (parameter-name parameter))
+             (value (aget query-parameters name *empty*)))
+        (cond
+          ((eq value *empty*)
+           (when (parameter-required-p parameter)
+             (push name missing))
+           (push (cons name nil) results))
+          (t
+           (let ((parsed-value
+                   (handler-case
+                       (parse-complex-parameter query-parameters
+                                                name
+                                                (parameter-style parameter)
+                                                (parameter-explode-p parameter)
+                                                (parameter-schema parameter))
+                     (apispec-error (e)
+                       (push (cons name e) invalid)
+                       nil))))
+             (push (cons name parsed-value) results)
+             (setf query-parameters (delete-from-alist query-parameters name)))))))
+    (when (or missing invalid query-parameters)
+      (error 'parameter-validation-failed
+             :in "query"
+             :missing (nreverse missing)
+             :unpermitted (mapcar #'car query-parameters)
+             :invalid (nreverse invalid)))
+    (nreverse results)))
 
 (defun parse-path-parameters (path-parameters parameters)
   (assert (association-list-p path-parameters 'string 'string))
   (assert (proper-list-p parameters 'path-parameter))
 
-  (when path-parameters
-    (loop for parameter in parameters
-          for value = (aget path-parameters (parameter-name parameter) *empty*)
-          if (eq value *empty*)
-          do (error 'parameter-validation-failed
-                    :message (format nil "Path parameter ~S is missing"
-                                     (parameter-name parameter)))
-          else
-          collect (cons (parameter-name parameter)
-                        (coerce-data
-                          (parse-complex-string value
-                                                (parameter-style parameter)
-                                                (parameter-explode-p parameter)
-                                                (parameter-schema parameter))
-                          (parameter-schema parameter))))))
+  (let (results missing invalid)
+    (dolist (parameter parameters)
+      (let* ((name (parameter-name parameter))
+             (value (aget path-parameters name *empty*)))
+        (cond
+          ((eq value *empty*)
+           (push name missing))
+          (t
+           (push (cons (parameter-name parameter)
+                       (handler-case
+                           (coerce-data
+                             (parse-complex-string value
+                                                   (parameter-style parameter)
+                                                   (parameter-explode-p parameter)
+                                                   (parameter-schema parameter))
+                             (parameter-schema parameter))
+                         (apispec-error (e)
+                           (push (cons name e) invalid)
+                           nil)))
+                 results)
+           (setf path-parameters (delete-from-alist path-parameters name))))))
+    (when (or missing invalid path-parameters)
+      (error 'parameter-validation-failed
+             :in "path"
+             :missing (nreverse missing)
+             :unpermitted (mapcar #'car path-parameters)
+             :invalid (nreverse invalid)))
+    (nreverse results)))
 
 (defun parse-headers (headers parameters)
   (check-type headers (or hash-table null))
   (assert (proper-list-p parameters 'header-parameter))
 
-  (when headers
-    (loop for parameter in parameters
-          for value = (gethash (string-downcase (parameter-name parameter)) headers *empty*)
-          if (eq value *empty*)
-          collect (cons (parameter-name parameter)
-                        (if (parameter-required-p parameter)
-                            (error 'parameter-validation-failed
-                                   :message (format nil "Header ~S is required but missing"
-                                                    (parameter-name parameter)))
-                            nil))
-          else
-          collect (cons (parameter-name parameter)
-                        (coerce-data
-                          (parse-complex-string value
-                                                (parameter-style parameter)
-                                                (parameter-explode-p parameter)
-                                                (parameter-schema parameter))
-                          (parameter-schema parameter))))))
+  (let ((headers (or headers (make-hash-table)))
+        results missing invalid)
+    (dolist (parameter parameters)
+      (let* ((name (parameter-name parameter))
+             (value (gethash (string-downcase name) headers *empty*)))
+        (cond
+          ((eq value *empty*)
+           (when (parameter-required-p parameter)
+             (push name missing))
+           (push (cons name nil) results))
+          (t
+           (push (cons (parameter-name parameter)
+                       (handler-case
+                           (coerce-data
+                             (parse-complex-string value
+                                                   (parameter-style parameter)
+                                                   (parameter-explode-p parameter)
+                                                   (parameter-schema parameter))
+                             (parameter-schema parameter))
+                         (apispec-error (e)
+                           (push (cons name e) invalid)
+                           nil)))
+                 results)))))
+    (when (or missing invalid)
+      (error 'parameter-validation-failed
+             :in "header"
+             :missing (nreverse missing)
+             :invalid (nreverse invalid)))
+    (nreverse results)))
 
 (defun decode-cookie-params (cookie-string)
   (loop for part in (ppcre:split "\\s*;\\s*" cookie-string)
@@ -102,24 +141,34 @@
   (check-type cookie-string (or string null))
   (assert (proper-list-p parameters 'cookie-parameter))
 
-  (when cookie-string
-    (let ((cookies (decode-cookie-params cookie-string)))
-      (loop for parameter in parameters
-            for value = (aget cookies (parameter-name parameter) *empty*)
-            if (eq value *empty*)
-            collect (cons (parameter-name parameter)
-                          (if (parameter-required-p parameter)
-                              (error 'parameter-validation-failed
-                                     :message (format nil "Cookie ~S is required but missing"
-                                                      (parameter-name parameter)))
-                              nil))
-            else
-            collect (cons (parameter-name parameter)
-                          (let ((*coerce-integer-string-to-boolean* t))
-                            (coerce-data
-                              (parse-complex-parameter cookies
-                                                       (parameter-name parameter)
-                                                       (parameter-style parameter)
-                                                       (parameter-explode-p parameter)
-                                                       (parameter-schema parameter))
-                              (parameter-schema parameter))))))))
+  (let ((cookies (and cookie-string
+                      (decode-cookie-params cookie-string)))
+        results missing invalid)
+    (dolist (parameter parameters)
+      (let* ((name (parameter-name parameter))
+             (value (aget cookies name *empty*)))
+        (cond
+          ((eq value *empty*)
+           (when (parameter-required-p parameter)
+             (push name missing))
+           (push (cons name nil) results))
+          (t
+           (push (cons (parameter-name parameter)
+                       (let ((*coerce-integer-string-to-boolean* t))
+                         (handler-case
+                             (coerce-data
+                               (parse-complex-parameter cookies
+                                                        (parameter-name parameter)
+                                                        (parameter-style parameter)
+                                                        (parameter-explode-p parameter)
+                                                        (parameter-schema parameter))
+                               (parameter-schema parameter))
+                           (apispec-error (e)
+                             (push (cons name e) invalid)
+                             nil))))
+                 results)))))
+    (when (or missing invalid)
+      (error 'parameter-validation-failed
+             :missing (nreverse missing)
+             :invalid (nreverse invalid)))
+    (nreverse results)))

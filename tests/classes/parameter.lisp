@@ -32,7 +32,7 @@
                                                    :style "form"
                                                    :explode nil)))
               '(("id" . #("abc" "opq" "xyz")))))
-  (ok (equalp (parse-query-string "id=abc,opq,xyz"
+  (ok (equalp (parse-query-string nil
                                   (list
                                     (make-instance 'parameter
                                                    :name "name"
@@ -42,7 +42,21 @@
                                                    :schema (schema (array :items 'string))
                                                    :style "form"
                                                    :explode nil)))
-              '(("name")))))
+              '(("name"))))
+  (ok (signals (parse-query-string "id=abc,opq,xyz" (list))
+               'parameter-validation-failed))
+
+  (ok (signals (parse-query-string nil
+                                   (list
+                                     (make-instance 'parameter
+                                                    :name "name"
+                                                    :in "query"
+                                                    :description "ID of the object to fetch"
+                                                    :required t
+                                                    :schema (schema (array :items 'string))
+                                                    :style "form"
+                                                    :expldoe nil)))
+               'parameter-validation-failed)))
 
 (deftest parse-headers-tests
   (ok (equalp (parse-headers
