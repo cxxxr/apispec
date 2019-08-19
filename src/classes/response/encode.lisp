@@ -1,6 +1,7 @@
 (defpackage #:apispec/classes/response/encode
   (:use #:cl
-        #:apispec/utils)
+        #:apispec/utils
+        #:apispec/classes/response/errors)
   (:import-from #:apispec/classes/response/class
                 #:response
                 #:responses
@@ -8,8 +9,13 @@
                 #:response-headers)
   (:import-from #:apispec/classes/media-type
                 #:media-type-schema)
+  (:import-from #:apispec/classes/schema
+                #:schema-error)
+  (:import-from #:apispec/classes/header
+                #:coerce-with-header)
   (:import-from #:apispec/body
-                #:encode-data)
+                #:encode-data
+                #:body-encode-error)
   (:import-from #:cl-ppcre)
   (:import-from #:assoc-utils
                 #:aget)
@@ -18,20 +24,6 @@
            #:find-media-type
            #:encode-response))
 (in-package #:apispec/classes/response/encode)
-
-(define-condition response-error (error) ())
-
-(define-condition response-not-defined (response-error)
-  ((code :type (or string integer null)
-         :initarg :code
-         :initform nil)
-   (content-type :type (or string null)
-                 :initarg :content-type
-                 :initform nil))
-  (:report (lambda (condition stream)
-             (with-slots (code content-type) condition
-               (format stream "Response is not defined for~@[ code=~S~]~@[ content-type=~S~]"
-                       code content-type)))))
 
 (defun find-response (responses status)
   (check-type responses responses)
@@ -71,13 +63,26 @@
          (media-type (find-media-type response content-type)))
     (list status
           (loop for (header-name . header-value) in headers
-                ;; TODO: Header validation
                 for response-header = (aget (response-headers response)
                                             (string-downcase header-name))
                 append (list (intern (string-upcase header-name) :keyword)
-                             header-value))
-          (list (encode-data data
-                             (or (and media-type
-                                      (media-type-schema media-type))
-                                 t)
-                             content-type)))))
+                             (if response-header
+                                 (handler-case
+                                     (coerce-with-header header-value response-header)
+                                   (schema-error ()
+                                     (error 'response-header-validation-failed
+                                            :name header-name
+                                            :value header-value
+                                            :header response-header)))
+                                 header-value)))
+          (list (let ((schema (or (and media-type
+                                       (media-type-schema media-type))
+                                  t)))
+                  (handler-case
+                      (encode-data data schema content-type)
+                    (body-encode-error (e)
+                      (error 'response-validation-failed
+                             :value data
+                             :schema schema
+                             :content-type content-type
+                             :reason (princ-to-string e)))))))))

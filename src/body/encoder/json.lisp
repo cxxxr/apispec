@@ -1,5 +1,6 @@
 (defpackage #:apispec/body/encoder/json
-  (:use #:cl)
+  (:use #:cl
+        #:apispec/body/errors)
   (:import-from #:apispec/classes/schema
                 #:object
                 #:binary
@@ -14,27 +15,38 @@
                           #:boolean
                           #:array
                           #:array-items)
+  (:import-from #:assoc-utils
+                #:delete-from-alist)
   (:export #:encode-data-to-json))
 (in-package #:apispec/body/encoder/json)
 
 (declaim (ftype (function (t schema)) encode-data-to-json))
 
+(defvar *empty* '#:empty)
+
 (defun encode-object (value schema)
   (write-char #\{)
-  (loop for (prop . rest) on (object-properties schema)
-        for (key . field-value) = (find (property-name prop)
-                                        value
-                                        :key #'car
-                                        :test #'equal)
-        if (and (null key)
-                (not (schema-nullable-p (property-type prop))))
-          do (error "Property ~S is required" (property-name prop))
-        else
-          do (prin1 (property-name prop))
-             (write-char #\:)
-             (encode-data-to-json field-value (property-type prop))
-        when rest
-          do (write-char #\,))
+  (let ((rest-value (copy-seq value))
+        missing)
+    (loop for (prop . rest) on (object-properties schema)
+          for name = (property-name prop)
+          for (key . field-value) = (assoc name rest-value :test #'string=)
+          if (and (null key)
+                  (not (schema-nullable-p (property-type prop))))
+            do (push name missing)
+          else
+            do (prin1 name)
+               (write-char #\:)
+               (encode-data-to-json field-value (property-type prop))
+               (setf rest-value (delete-from-alist rest-value name))
+          when rest
+            do (write-char #\,))
+    (when (or missing rest-value)
+      (error 'body-encode-object-error
+             :value value
+             :schema schema
+             :missing (nreverse missing)
+             :unpermitted (mapcar #'car rest-value))))
   (write-char #\})
   (values))
 
@@ -56,9 +68,12 @@
     (write-char #\])))
 
 (defun encode-boolean (value)
-  (princ (ecase value
-           (t "true")
-           ('nil "false")))
+  (princ (case value
+           ('t "true")
+           ('nil "false")
+           (otherwise (error 'body-encode-error
+                             :value value
+                             :schema (schema boolean)))))
   (values))
 
 (defun encode-data-to-json (value schema)
@@ -72,7 +87,10 @@
         (null
           (if (schema-nullable-p schema)
               (princ "null")
-              (error "Not nullable")))
+              ;; Not nullable error
+              (error 'body-encode-error
+                     :value value
+                     :schema schema)))
         (otherwise (jojo:with-output (*standard-output*)
                      (jojo:%to-json value))))))
   (values))
