@@ -5,6 +5,7 @@
                 #:header)
   (:import-from #:apispec/classes/media-type
                 #:media-type)
+  (:import-from #:cl-ppcre)
   (:export #:response
            #:response-description
            #:response-headers
@@ -29,17 +30,18 @@
             :reader response-content)))
 
 (defun http-status-code-p (value)
-  (<= 100 value 599))
+  (and (ppcre:scan "[1-5](?:\\d\\d|XX)" value)
+       t))
 
 (deftype http-status-code ()
-  '(and integer (satisfies http-status-code-p)))
+  '(satisfies http-status-code-p))
 
 (defun default-response-p (value)
   (equal value "default"))
 
 (deftype responses-keys ()
-  '(or http-status-code
-       (and string
+  '(and string
+        (or http-status-code
             (satisfies default-response-p))))
 
 (defun responsesp (responses)

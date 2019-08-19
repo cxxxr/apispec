@@ -4,7 +4,6 @@
   (:import-from #:apispec/classes/response/class
                 #:response
                 #:responses
-                #:http-status-code
                 #:response-content
                 #:response-headers)
   (:import-from #:apispec/classes/media-type
@@ -36,7 +35,8 @@
 
 (defun find-response (responses status)
   (check-type responses responses)
-  (or (aget responses status)
+  (or (aget responses (write-to-string status))
+      (aget responses (format nil "~DXX" (floor (/ status 100))))
       (aget responses "default")
       (error 'response-not-defined
              :code status)))
@@ -60,7 +60,7 @@
                   :content-type content-type))))
 
 (defun encode-response (status headers data responses)
-  (check-type status http-status-code)
+  (check-type status (integer 100 599))
   (assert (association-list-p headers 'string t))
   (check-type responses responses)
   ;; TODO: Think of the case when the Content-Type is not specified

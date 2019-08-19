@@ -12,12 +12,12 @@
 (in-package #:apispec/tests/classes/response)
 
 (deftest find-response-tests
-  (let ((responses `((200 . ,(make-instance 'response
-                                            :description "Success"
-                                            :content
-                                            `(("application/json"
-                                               . ,(make-instance 'media-type
-                                                                 :schema (schema object)))))))))
+  (let ((responses `(("200" . ,(make-instance 'response
+                                              :description "Success"
+                                              :content
+                                              `(("application/json"
+                                                 . ,(make-instance 'media-type
+                                                                   :schema (schema object)))))))))
     (ok (find-response responses 200))
     (ok (signals (find-response responses 404)
                  'response-not-defined))
@@ -64,15 +64,15 @@
                                '(("content-type" . "application/json"))
                                '(("id" . 1)
                                  ("is_registered" . nil))
-                               `((200 . ,(make-instance 'response
-                                                        :description "Success"
-                                                        :content
-                                                        `(("application/json"
-                                                           . ,(make-instance 'media-type
-                                                                             :schema (schema
-                                                                                       (object
-                                                                                         (("id" integer)
-                                                                                          ("is_registered" boolean)))))))))))
+                               `(("200" . ,(make-instance 'response
+                                                          :description "Success"
+                                                          :content
+                                                          `(("application/json"
+                                                             . ,(make-instance 'media-type
+                                                                               :schema (schema
+                                                                                         (object
+                                                                                           (("id" integer)
+                                                                                            ("is_registered" boolean)))))))))))
               '(200
                 (:content-type "application/json")
                 ("{\"id\":1,\"is_registered\":false}")))))
