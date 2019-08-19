@@ -10,6 +10,10 @@ env:
     - LISP=sbcl-bin COVERAGE=1
     - LISP=ccl-bin
 
+matrix:
+  allow_failures:
+    - LISP: ccl-bin
+
 install:
   # Roswell
   - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
