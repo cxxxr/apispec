@@ -19,8 +19,7 @@
   (:import-from #:assoc-utils
                 #:aget
                 #:alist-keys)
-  (:export #:complex-parser-failed
-           #:complex-style-string-p
+  (:export #:complex-style-string-p
            #:complex-style
            #:parse-matrix-value
            #:parse-label-value
@@ -33,11 +32,6 @@
            #:parse-complex-parameter
            #:parse-complex-parameters))
 (in-package #:apispec/complex)
-
-(define-condition complex-parser-failed (error)
-  ((message :initarg :message))
-  (:report (lambda (condition stream)
-             (princ (slot-value condition 'message) stream))))
 
 (defun complex-style-string-p (style)
   (and (member style '("matrix" "label" "form" "simple" "spaceDelimited" "pipeDelimited" "deepObject")
