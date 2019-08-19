@@ -28,8 +28,8 @@
      (:file "media-type")
      (:file "response")
      (:file "path")
-     (:file "operation")
-     (:file "complex")))
+     (:file "operation")))
+   (:file "complex")
    (:module "body"
     :components
     ((:file "encode")))
