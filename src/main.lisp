@@ -45,13 +45,12 @@
            #:property-name
            #:property-type
 
-           #:coerce-failed
            #:coerce-data
-
-           #:validation-failed
            #:validate-data
 
-           #:encode-data)
+           #:schema-error
+           #:schema-coercion-failed
+           #:schema-validation-failed)
   (:mix-reexport #:apispec/classes/header
                  #:apispec/classes/encoding
                  #:apispec/classes/media-type
@@ -60,4 +59,5 @@
                  #:apispec/classes/request-body
                  #:apispec/classes/response
                  #:apispec/classes/path
-                 #:apispec/body))
+                 #:apispec/body
+                 #:apispec/errors))

@@ -2,6 +2,7 @@
   (:mix #:apispec/classes/schema/core
         #:cl)
   (:use #:apispec/classes/schema/coerce
+        #:apispec/classes/schema/errors
         #:rove)
   (:import-from #:apispec/classes/schema/validate
                 #:validation-failed)
@@ -23,9 +24,14 @@
 (deftest coerce-string-tests
   (ok (equal (coerce-data "a" 'string) "a"))
   (ok (signals (coerce-data #\a 'string)
-          'coerce-failed))
+               'schema-coercion-failed))
+  (ok (equal (handler-bind ((schema-coercion-failed
+                              (lambda (condition)
+                                (invoke-restart (find-restart 'use-value condition) "a"))))
+               (coerce-data #\a 'string))
+             "a"))
   (ok (signals (coerce-data 1 'string)
-          'coerce-failed))
+               'schema-coercion-failed))
   (let ((date (coerce-data "2019-04-15" 'date)))
     (ok (typep date 'local-time:timestamp))
     (ok (= (local-time:timestamp-year date) 2019))
@@ -56,7 +62,7 @@
   (ok (equalp (coerce-data '() 'array)
               #()))
   (ok (signals (coerce-data '(1 2 3) '(array 10))
-          'validation-failed))
+          'schema-validation-failed))
   (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
               #(1 -2 3))))
 
@@ -68,7 +74,7 @@
               '(("name" . "fukamachi"))))
   (ok (signals (coerce-data '(("name" . 1)) '(object
                                               (("name" string))))
-          'coerce-failed))
+          'schema-coercion-failed))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
@@ -77,7 +83,7 @@
                             '(object
                               (("name" string))
                               :required ("name")))
-          'validation-failed))
+          'schema-validation-failed))
 
   (testing "additionalProperties"
     (ok (equal (coerce-data '(("name" . "fukamachi")
@@ -92,7 +98,7 @@
                               '(object
                                 (("name" string))
                                 :additional-properties nil))
-            'validation-failed))
+            'schema-validation-failed))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object

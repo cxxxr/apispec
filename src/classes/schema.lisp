@@ -2,4 +2,5 @@
   (:mix-reexport #:apispec/classes/schema/core
                  #:apispec/classes/schema/coerce
                  #:apispec/classes/schema/validate
+                 #:apispec/classes/schema/errors
                  #:cl))

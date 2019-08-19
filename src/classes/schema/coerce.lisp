@@ -2,25 +2,20 @@
   (:mix #:apispec/classes/schema/core
         #:cl)
   (:use #:apispec/classes/schema/validate
+        #:apispec/classes/schema/errors
         #:apispec/utils
         #:parse-number)
   (:import-from #:apispec/classes/schema/core
                 #:parse-schema-definition)
+  (:import-from #:apispec/classes/schema/errors
+                #:message)
+  (:import-from #:apispec/errors
+                #:read-new-value)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
-  (:export #:coerce-failed
-           #:coerce-data
+  (:export #:coerce-data
            #:*coerce-integer-string-to-boolean*))
 (in-package #:apispec/classes/schema/coerce)
-
-(define-condition coerce-failed (error)
-  ((value :initarg :value)
-   (schema :initarg :schema))
-  (:report (lambda (condition stream)
-             (with-slots (value schema) condition
-               (format stream "~S cannot be coerced to ~S"
-                       value
-                       (type-of schema))))))
 
 (defgeneric coerce-data (value schema)
   (:method (value (schema symbol))
@@ -36,36 +31,59 @@
     ;; Don't raise COERCE-FAILED when the value is NIL.
     ;; If the schema is not nullable, it'll be catched in VALIDATE-DATA.
     (when value
-      (error 'coerce-failed
+      (error 'schema-coercion-failed
              :value value
              :schema schema)))
   (:method :around (value (schema schema))
-    (let ((result (if (and (null value)
-                           (schema-has-default-p schema)
-                           (schema-default schema))
-                      (coerce-data (schema-default schema) schema)
-                      (call-next-method))))
-      (validate-data result schema)
-      result)))
+    (if (and (null value)
+             (schema-has-default-p schema)
+             (schema-default schema))
+        (coerce-data (schema-default schema) schema)
+        (let ((result (restart-case
+                          (call-next-method)
+                        (use-value (&optional (new-value nil new-value-supplied))
+                          (unless new-value-supplied
+                            (setf new-value (read-new-value)))
+                          new-value))))
+          (validate-data result schema)
+          result))))
 
 ;;
 ;; Number Types
 
 (defmethod coerce-data ((value cl:number) (schema number))
-  (typecase schema
-    (integer (coerce value 'cl:integer))
-    (float (coerce value 'cl:float))
-    (double (coerce value 'cl:double-float))
-    (otherwise value)))
+  (handler-case (typecase schema
+                  (integer (coerce value 'cl:integer))
+                  (float (coerce value 'cl:float))
+                  (double (coerce value 'cl:double-float))
+                  (otherwise value))
+    (error () (error 'schema-coercion-failed
+                     :value value
+                     :schema schema))))
 
 (defmethod coerce-data ((value cl:string) (schema number))
-  (coerce-data (parse-number value) schema))
+  (coerce-data
+    (handler-case (parse-number value)
+      (error () (error 'schema-coercion-failed
+                       :value value
+                       :schema schema)))
+    schema))
 
 (defmethod coerce-data ((value cl:string) (schema float))
-  (coerce-data (parse-number value :float-format 'cl:single-float) schema))
+  (coerce-data
+    (handler-case (parse-number value :float-format 'cl:single-float)
+      (error () (error 'schema-coercion-failed
+                       :value value
+                       :schema schema)))
+    schema))
 
 (defmethod coerce-data ((value cl:string) (schema double))
-  (coerce-data (parse-number value :float-format 'cl:double-float) schema))
+  (coerce-data
+    (handler-case (parse-number value :float-format 'cl:double-float)
+      (error () (error 'schema-coercion-failed
+                       :value value
+                       :schema schema)))
+    schema))
 
 
 ;;
@@ -96,11 +114,11 @@
   (etypecase value
     (cl:string
       (unless *coerce-integer-string-to-boolean*
-        (error 'coerce-failed :value value :schema schema))
+        (error 'schema-coercion-failed :value value :schema schema))
       (cond
         ((equal value "1") t)
         ((equal value "0") nil)
-        (t (error 'coerce-failed :value value :schema schema))))
+        (t (error 'schema-coercion-failed :value value :schema schema))))
     (cl:boolean value)))
 
 
@@ -121,7 +139,7 @@
 
 (defmethod coerce-data (value (schema object))
   (unless (typep value 'association-list)
-    (error 'coerce-failed
+    (error 'schema-coercion-failed
            :value value
            :schema schema))
 
@@ -140,15 +158,15 @@
                     (handler-case (coerce-data field-value (if prop
                                                                (property-type prop)
                                                                additional-properties))
-                      (validation-failed (e)
-                        (error 'validation-failed
+                      (schema-validation-failed (e)
+                        (error 'schema-validation-failed
                                :value value
                                :schema schema
                                :message (format nil "Validation failed at ~S:~%  ~S"
                                                 key
                                                 (slot-value e 'message))))))
                    ((not additional-properties)
-                    (error 'validation-failed
+                    (error 'schema-validation-failed
                            :value value
                            :schema schema
                            :message (format nil "Unpermitted property: ~S" key)))

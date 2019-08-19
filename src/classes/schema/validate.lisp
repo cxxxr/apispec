@@ -1,22 +1,14 @@
 (uiop:define-package #:apispec/classes/schema/validate
-    (:mix #:apispec/classes/schema/core
-          #:cl)
+  (:mix #:apispec/classes/schema/core
+        #:cl)
+  (:use #:apispec/classes/schema/errors)
+  (:import-from #:apispec/utils
+                #:association-list)
   (:import-from #:cl-ppcre)
-  (:export #:validation-failed
+  (:import-from #:local-time)
+  (:export #:schema-validation-failed
            #:validate-data))
 (in-package #:apispec/classes/schema/validate)
-
-(define-condition validation-failed (error)
-  ((value :initarg :value)
-   (schema :initarg :schema)
-   (message :initarg :message
-            :initform nil))
-  (:report (lambda (condition stream)
-             (with-slots (value schema message) condition
-               (format stream "~S is invalid for ~S~@[:~%  ~A~]"
-                       value
-                       (type-of schema)
-                       message)))))
 
 (defgeneric validate-data (value schema)
   (:method (value (schema symbol))
@@ -24,19 +16,28 @@
   (:method :around ((value null) (schema schema))
     (unless (or (typep schema 'boolean)  ;; BOOLEAN can be NIL
                 (schema-nullable-p schema))
-      (error 'validation-failed
+      (error 'schema-validation-failed
              :value value
              :schema schema
              :message "Not nullable"))
     t)
   (:method (value (schema schema))
-    t))
+    t)
+  (:method :around (value (schema schema))
+    (restart-case (call-next-method)
+      (skip-validation () value))))
 
 
 ;;
 ;; Number Types
 
 (defmethod validate-data (value (schema number))
+  (unless (numberp value)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not a number"))
+
   (unless (and (or (not (number-minimum schema))
                    (funcall (if (number-exclusive-minimum-p schema)
                                 #'<
@@ -49,7 +50,7 @@
                                 #'<=)
                             value
                             (number-maximum schema))))
-    (error 'validation-failed
+    (error 'schema-validation-failed
            :value value
            :schema schema
            :message
@@ -57,10 +58,11 @@
              (princ "Not in range of ")
              (when (number-minimum schema)
                (princ (number-minimum schema))
+               (write-char #\Space)
                (if (number-exclusive-minimum-p schema)
-                   (princ " <")
-                   (princ " <=")))
-             (princ " value ")
+                   (princ "< ")
+                   (princ "<= ")))
+             (princ "value ")
              (when (number-maximum schema)
                (if (number-exclusive-maximum-p schema)
                    (princ "< ")
@@ -68,7 +70,7 @@
                (princ (number-maximum schema))))))
   (when (number-multiple-of schema)
     (unless (= (mod value (number-multiple-of schema)) 0)
-      (error 'validation-failed
+      (error 'schema-validation-failed
              :value value
              :schema schema
              :message (format nil "Not multiple of ~A" (number-multiple-of schema)))))
@@ -80,11 +82,17 @@
 ;; String Types
 
 (defmethod validate-data (value (schema string))
+  (unless (stringp value)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not a string"))
+
   (unless (and (or (not (string-min-length schema))
                    (<= (string-min-length schema) (length value)))
                (or (not (string-max-length schema))
                    (<= (length value) (string-max-length schema))))
-    (error 'validation-failed
+    (error 'schema-validation-failed
            :value value
            :schema schema
            :message (format nil "The length not in the range~@[ from ~A~]~@[ to ~A~]"
@@ -93,11 +101,39 @@
 
   (unless (or (not (string-pattern schema))
               (ppcre:scan (string-pattern schema) value))
-    (error 'validation-failed
+    (error 'schema-validation-failed
            :value value
            :schema schema
            :message (format nil "Not match to ~S"
                             (string-pattern schema))))
+
+  t)
+
+(defmethod validate-data (value (schema binary))
+  (unless (typep value '(or (vector (unsigned-byte 8))
+                            stream))
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not a byte vector"))
+
+  t)
+
+(defmethod validate-data (value (schema date))
+  (unless (typep value 'local-time:timestamp)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not a LOCAL-TIME:TIMESTAMP"))
+
+  t)
+
+(defmethod validate-data (value (schema date-time))
+  (unless (typep value 'local-time:timestamp)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not a LOCAL-TIME:TIMESTAMP"))
 
   t)
 
@@ -106,11 +142,17 @@
 ;; Array Type
 
 (defmethod validate-data (value (schema array))
+  (unless (arrayp value)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not an array"))
+
   (unless (and (or (not (array-min-items schema))
                    (<= (array-min-items schema) (length value)))
                (or (not (array-max-items schema))
                    (<= (length value) (array-max-items schema))))
-    (error 'validation-failed
+    (error 'schema-validation-failed
            :value value
            :schema schema
            :message (format nil "The length not in the range~@[ from ~A~]~@[ to ~A~]"
@@ -120,7 +162,7 @@
   (when (array-unique-items-p schema)
     (unless (= (length (remove-duplicates value :test #'equal))
                (length value))
-      (error 'validation-failed
+      (error 'schema-validation-failed
              :value value
              :schema schema
              :message "The items are not unique"))))
@@ -130,6 +172,12 @@
 ;; Object Type
 
 (defmethod validate-data (value (schema object))
+  (unless (typep value 'association-list)
+    (error 'schema-validation-failed
+           :value value
+           :schema schema
+           :message "Not an association list"))
+
   (unless (object-properties schema)
     (return-from validate-data value))
 
@@ -139,8 +187,8 @@
                          :test #'equal)
         do (if prop
                (handler-case (validate-data field-value (property-type prop))
-                 (validation-failed (e)
-                   (error 'validation-failed
+                 (schema-validation-failed (e)
+                   (error 'schema-validation-failed
                           :value value
                           :schema schema
                           :message (format nil "Validation failed at ~S:~%  ~S"
@@ -148,7 +196,7 @@
                                            (slot-value e 'message)))))
                (let ((additional-properties (object-additional-properties schema)))
                  (etypecase additional-properties
-                   (null (error 'validation-failed
+                   (null (error 'schema-validation-failed
                                 :value value
                                 :schema schema
                                 :message (format nil "Undefined property: ~S" key)))
@@ -159,7 +207,7 @@
           collect key into missing-keys
         finally
            (when missing-keys
-             (error 'validation-failed
+             (error 'schema-validation-failed
                     :value value
                     :schema schema
                     :message (format nil "Missing required keys: ~S" missing-keys))))
@@ -167,7 +215,7 @@
                    (nthcdr (object-min-properties schema) value))
                (or (not (object-max-properties schema))
                    (nthcdr (object-max-properties schema) value)))
-    (error 'validation-failed
+    (error 'schema-validation-failed
            :value value
            :schema schema
            :message

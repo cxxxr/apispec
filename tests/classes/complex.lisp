@@ -13,8 +13,7 @@
                 #:parse-complex-parameters)
   (:import-from #:apispec/classes/schema
                 #:schema
-                #:object
-                #:coerce-failed)
+                #:object)
   (:import-from #:assoc-utils
                 #:alist=))
 (in-package #:apispec/tests/complex)
