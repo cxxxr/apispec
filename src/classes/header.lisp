@@ -1,6 +1,7 @@
 (defpackage #:apispec/classes/header
   (:use #:cl
-        #:apispec/utils)
+        #:apispec/utils
+        #:apispec/errors)
   (:import-from #:apispec/classes/schema
                 #:schema
                 #:coerce-data)
@@ -10,13 +11,16 @@
            #:header-required-p
            #:header-schema
            #:header-explode-p
+           #:header-error
            #:header-missing
            #:coerce-with-header))
 (in-package #:apispec/classes/header)
 
 (declaim-safety)
 
-(define-condition header-missing (error)
+(define-condition header-error (apispec-error) ())
+
+(define-condition header-missing (header-error)
   ()
   (:report (lambda (condition stream)
              (declare (ignore condition))

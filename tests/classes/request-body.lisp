@@ -88,3 +88,19 @@
           '(("id" . 1)
             ("address" . "東京都台東区上野２丁目７−１２")
             ("historyMetadata" . (("type" . "culture"))))))))
+
+(deftest invalid-format-tests
+  (ok (signals (parse-request-body
+                 (make-stream "blah")
+                 "multipart/form-data"
+                 (make-instance 'request-body
+                                :content
+                                `(("multipart/form-data" . ,(make-instance 'media-type :schema (schema object))))))
+               'request-body-parse-error))
+  (ok (signals (parse-request-body
+                 (make-stream *multipart-data*)
+                 "multipart/form-data; boundary=\"---------------------------186454651713519341951581030105\""
+                 (make-instance 'request-body
+                                :content
+                                `(("application/json" . ,(make-instance 'media-type :schema (schema object))))))
+               'request-body-content-type-mismatch)))

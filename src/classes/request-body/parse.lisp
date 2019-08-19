@@ -1,17 +1,15 @@
 (defpackage #:apispec/classes/request-body/parse
   (:use #:cl
-        #:apispec/classes/request-body/class)
+        #:apispec/classes/request-body/class
+        #:apispec/classes/request-body/errors)
   (:import-from #:apispec/classes/media-type
                 #:parse-with-media-type)
-  (:export #:request-body-validation-failed
-           #:parse-request-body))
+  (:import-from #:apispec/classes/schema
+                #:schema-error)
+  (:import-from #:apispec/errors
+                #:apispec-error)
+  (:export #:parse-request-body))
 (in-package #:apispec/classes/request-body/parse)
-
-(define-condition request-body-validation-failed (error)
-  ((message :type string
-            :initarg :message))
-  (:report (lambda (condition stream)
-             (princ (slot-value condition 'message) stream))))
 
 (defun parse-request-body (body-stream content-type request-body)
   (check-type body-stream (or stream null))
@@ -24,7 +22,15 @@
 
     (let ((media-type (find-request-body-media-type request-body content-type)))
       (unless media-type
-        (error 'request-body-validation-failed
-               :message (format nil "Request body Content-Type ~S is not allowed"
-                                content-type)))
-      (parse-with-media-type body-stream media-type content-type))))
+        (error 'request-body-content-type-mismatch
+               :given content-type
+               :expected (mapcar #'car (request-body-content request-body))))
+      (handler-case
+          (parse-with-media-type body-stream media-type content-type)
+        (schema-error (e)
+          (error 'request-body-validation-failed
+                 :value (slot-value e 'apispec/classes/schema/errors::value)
+                 :schema (slot-value e 'apispec/classes/schema/errors::schema)))
+        (apispec-error ()
+          (error 'request-body-parse-error
+                 :content-type content-type))))))

@@ -21,6 +21,7 @@
                           #:boolean
                           #:array)
   (:import-from #:apispec/classes/header
+                #:header-missing
                 #:coerce-with-header)
   (:import-from #:apispec/complex
                 #:parse-complex-parameters)
@@ -33,12 +34,6 @@
   (:export #:parse-with-encoding
            #:encoding-content-type-mismatch))
 (in-package #:apispec/classes/encoding/parse)
-
-(define-condition encoding-content-type-mismatch (error)
-  ((message :type string
-            :initarg :message))
-  (:report (lambda (condition stream)
-             (princ (slot-value condition 'message) stream))))
 
 (defun default-content-type (schema)
   (etypecase schema
@@ -57,12 +52,15 @@
                            (gethash "content-type" headers))))
     (when (and content-type
                (encoding-content-type encoding))
-      (handler-case (match-content-type (encoding-content-type encoding)
-                                        content-type
-                                        :comma-separated t)
-        (error (e)
+      (or (handler-case
+              (match-content-type (encoding-content-type encoding)
+                                  content-type
+                                  :comma-separated t)
+            (error (e)
+              nil))
           (error 'encoding-content-type-mismatch
-                 :message (princ-to-string e)))))
+                 :given content-type
+                 :expected (encoding-content-type encoding))))
     (let ((content-type (or content-type
                             (encoding-content-type encoding)
                             (default-content-type schema))))
@@ -75,19 +73,22 @@
               for given-header-value = (gethash header-name-downcased headers)
               ;; Content-Type is ignored
               if (not (string= header-name-downcased "content-type"))
-              do (coerce-with-header given-header-value header-object)))
+              do (handler-case
+                     (coerce-with-header given-header-value header-object)
+                   (header-missing ()
+                     (error 'encoding-header-missing
+                            :header header-name-downcased)))))
       ;; TODO: Respect encoding-allow-reserved-p if it's urlencoded.
       (multiple-value-bind (parsed-values parsed-headers)
           (let ((*multipart-force-stream* nil))
             (parse-body value content-type))
         (declare (ignore parsed-headers))
-        (when (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
-                   (encoding-style encoding))
-          (setf parsed-values
-                (parse-complex-parameters parsed-values
-                                          (encoding-style encoding)
-                                          (encoding-explode-p encoding)
-                                          schema)))
         (let ((*coerce-integer-string-to-boolean*
                 (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))))
-          (coerce-data parsed-values schema))))))
+          (if (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
+                   (encoding-style encoding))
+              (parse-complex-parameters parsed-values
+                                        (encoding-style encoding)
+                                        (encoding-explode-p encoding)
+                                        schema)
+              (coerce-data parsed-values schema)))))))
