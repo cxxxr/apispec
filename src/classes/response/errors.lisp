@@ -3,6 +3,7 @@
         #:apispec/errors)
   (:export #:response-error
            #:response-not-defined
+           #:response-body-not-allowed
            #:response-header-validation-failed
            #:response-validation-failed))
 (in-package #:apispec/classes/response/errors)
@@ -20,6 +21,14 @@
              (with-slots (code content-type) condition
                (format stream "Response is not defined for~@[ code=~S~]~@[ content-type=~S~]"
                        code content-type)))))
+
+(define-condition response-body-not-allowed (response-error)
+  ((code :type (or string integer null)
+         :initarg :code
+         :initform nil))
+  (:report (lambda (condition stream)
+             (format stream "Response body is not allowed for HTTP status ~A"
+                     (slot-value condition 'code)))))
 
 (define-condition response-header-validation-failed (response-error)
   ((name :initarg :name)

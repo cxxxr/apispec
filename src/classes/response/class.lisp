@@ -26,7 +26,7 @@
             :reader response-headers)
    (content :type (association-list string (or media-type null))
             :initarg :content
-            :initform nil
+            :initform (error ":content is required for RESPONSE")
             :reader response-content)))
 
 (defun http-status-code-p (value)

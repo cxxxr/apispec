@@ -11,7 +11,8 @@
 (deftest find-operation-tests
   (let* ((get-operation (make-instance 'operation
                                        :responses `((200 . ,(make-instance 'response
-                                                                           :description "Success")))))
+                                                                           :description "Success"
+                                                                           :content nil)))))
          (path (make-instance 'path-item
                               :get get-operation)))
     (ok (eq (find-operation path :get) get-operation))

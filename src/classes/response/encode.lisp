@@ -17,6 +17,8 @@
                 #:encode-data
                 #:body-encode-error)
   (:import-from #:cl-ppcre)
+  (:import-from #:alexandria
+                #:starts-with-subseq)
   (:import-from #:assoc-utils
                 #:aget)
   (:export #:response-not-defined
@@ -27,7 +29,7 @@
 
 (defun find-response (responses status)
   (check-type responses responses)
-  (or (aget responses (write-to-string status))
+  (or (aget responses (princ-to-string status))
       (aget responses (format nil "~DXX" (floor (/ status 100))))
       (aget responses "default")
       (error 'response-not-defined
@@ -37,7 +39,7 @@
   (check-type response response)
   (check-type content-type string)
   (cdr (or (find-if (lambda (media-type-string)
-                      (string-equal media-type-string content-type))
+                      (starts-with-subseq media-type-string content-type))
                     (response-content response)
                     :key #'car)
            (find-if (lambda (media-type-string)
@@ -47,7 +49,7 @@
                     :key #'car)
            (find "*/*" (response-content response)
                  :key #'car
-                 :test #'equal)
+                 :test #'string=)
            (error 'response-not-defined
                   :content-type content-type))))
 
@@ -67,8 +69,7 @@
          (content-type (or (and (stringp content-type)
                                 (ppcre:scan-to-strings "[^;\\s]+" content-type))
                            (default-content-type data)))
-         (response (find-response responses status))
-         (media-type (find-media-type response content-type)))
+         (response (find-response responses status)))
     (list status
           (loop for (header-name . header-value) in headers
                 for response-header = (aget (response-headers response)
@@ -83,14 +84,20 @@
                                             :value header-value
                                             :header response-header)))
                                  header-value)))
-          (list (let ((schema (or (and media-type
-                                       (media-type-schema media-type))
-                                  t)))
-                  (handler-case
-                      (encode-data data schema content-type)
-                    (body-encode-error (e)
-                      (error 'response-validation-failed
-                             :value data
-                             :schema schema
-                             :content-type content-type
-                             :reason (princ-to-string e)))))))))
+          (if (null (response-content response))
+              (if data
+                  (error 'response-body-not-allowed
+                         :code status)
+                  nil)
+              (let ((media-type (find-media-type response content-type)))
+                (list (let ((schema (or (and media-type
+                                             (media-type-schema media-type))
+                                        t)))
+                        (handler-case
+                            (encode-data data schema content-type)
+                          (body-encode-error (e)
+                            (error 'response-validation-failed
+                                   :value data
+                                   :schema schema
+                                   :content-type content-type
+                                   :reason (princ-to-string e)))))))))))

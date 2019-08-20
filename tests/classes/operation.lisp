@@ -3,11 +3,14 @@
         #:rove
         #:apispec/classes/operation)
   (:import-from #:apispec/classes/schema
-                #:schema)
+                #:schema
+                #:object)
   (:import-from #:apispec/classes/parameter
                 #:parameter)
   (:import-from #:apispec/classes/response
                 #:response)
+  (:import-from #:apispec/classes/media-type
+                #:media-type)
   (:import-from #:assoc-utils
                 #:alist-hash))
 (in-package #:apispec/tests/classes/operation)
@@ -16,8 +19,9 @@
   (make-instance 'operation
                  :parameters parameters
                  :responses
-                 `((200 . ,(make-instance 'response
-                                          :description "Success")))))
+                 `(("204" . ,(make-instance 'response
+                                            :description "Success"
+                                            :content nil)))))
 
 (deftest validate-request-tests
   (testing "path"
@@ -81,3 +85,33 @@
                                                  `(("cookie" . "debug=0; csrftoken=BUSe35dohU3O1MZvDCU")))))
                   '(("debug" . nil)
                     ("csrftoken" . "BUSe35dohU3O1MZvDCU")))))))
+
+(deftest validate-response-tests
+  (let* ((media-type (make-instance 'media-type
+                                    :schema (schema (object (("hello" string))))))
+         (200-response (make-instance 'response
+                                      :description "Success"
+                                      :content `(("application/json" . ,media-type)))))
+    (testing "200 OK (application/json)"
+      (let ((operation (make-instance 'operation
+                                      :parameters nil
+                                      :responses
+                                      `(("200" . ,200-response)))))
+        (ok (equal (validate-response operation
+                                      200
+                                      '(("content-type" . "application/json; charset=utf-8"))
+                                      '(("hello" . "こんにちは")))
+                   '(200 (:content-type "application/json; charset=utf-8") ("{\"hello\":\"こんにちは\"}"))))))
+    (testing "204 No Content"
+      (let* ((response (make-instance 'response
+                                      :description "No Content"
+                                      :content nil))
+             (operation (make-instance 'operation
+                                       :parameters nil
+                                       :responses `(("204" . ,response)
+                                                    ("2XX" . ,200-response)))))
+        (ok (equal (validate-response operation
+                                      204
+                                      '()
+                                      '())
+                   '(204 () ())))))))
