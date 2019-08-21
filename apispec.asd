@@ -20,7 +20,8 @@
     ((:module "schema"
       :components
       ((:file "core")
-       (:file "coerce")))
+       (:file "coerce")
+       (:file "validate")))
      (:file "header")
      (:file "encoding")
      (:file "parameter")

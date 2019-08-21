@@ -2,6 +2,8 @@
   (:mix #:apispec/classes/schema/core
         #:cl)
   (:use #:apispec/classes/schema/errors)
+  (:import-from #:apispec/classes/schema/core
+                #:parse-schema-definition)
   (:import-from #:apispec/utils
                 #:association-list)
   (:import-from #:cl-ppcre)
@@ -13,6 +15,11 @@
 (defgeneric validate-data (value schema)
   (:method (value (schema symbol))
     (validate-data value (make-schema schema)))
+  (:method (value (schema cons))
+    (validate-data value
+                   (multiple-value-bind (type args)
+                       (parse-schema-definition schema)
+                     (apply #'make-schema type args))))
   (:method :around ((value null) (schema schema))
     (unless (or (typep schema 'boolean)  ;; BOOLEAN can be NIL
                 (schema-nullable-p schema))

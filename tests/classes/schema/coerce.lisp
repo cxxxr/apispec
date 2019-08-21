@@ -99,7 +99,7 @@
                               '(object
                                 (("name" string))
                                 :additional-properties nil))
-            'schema-validation-failed))
+            'schema-coercion-failed))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object

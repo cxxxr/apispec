@@ -1,12 +1,13 @@
 (uiop:define-package #:apispec/classes/schema/coerce
   (:mix #:apispec/classes/schema/core
         #:cl)
-  (:use #:apispec/classes/schema/validate
-        #:apispec/classes/schema/errors
+  (:use #:apispec/classes/schema/errors
         #:apispec/utils
         #:parse-number)
   (:import-from #:apispec/classes/schema/core
                 #:parse-schema-definition)
+  (:import-from #:apispec/classes/schema/validate
+                #:validate-data)
   (:import-from #:apispec/classes/schema/errors
                 #:message)
   (:import-from #:apispec/errors
@@ -38,18 +39,26 @@
     (if (and (null value)
              (schema-has-default-p schema)
              (schema-default schema))
-        (coerce-data (schema-default schema) schema)
-        (let ((result (restart-case
-                          (call-next-method)
-                        (use-value (&optional (new-value nil new-value-supplied))
-                          (unless new-value-supplied
-                            (setf new-value (read-new-value)))
-                          new-value))))
-          (validate-data result schema)
-          result))))
+        (schema-default schema)
+        (restart-case
+            (call-next-method)
+          (use-value (&optional (new-value nil new-value-supplied))
+            (unless new-value-supplied
+              (setf new-value (read-new-value)))
+            new-value)))))
+
+(defmacro with-validation (schema &body body)
+  (let ((results (gensym "RESULTS")))
+    `(let ((,results (progn ,@body)))
+       (validate-data ,results ,schema)
+       ,results)))
 
 ;;
 ;; Number Types
+
+(defmethod coerce-data :around (value (schema number))
+  (with-validation schema
+    (call-next-method)))
 
 (defmethod coerce-data ((value cl:number) (schema number))
   (handler-case (typecase schema
@@ -89,6 +98,10 @@
 ;;
 ;; String Types
 
+(defmethod coerce-data :around (value (schema string))
+  (with-validation schema
+    (call-next-method)))
+
 (defmethod coerce-data ((value cl:string) (schema string))
   (princ-to-string value))
 
@@ -125,6 +138,10 @@
 ;;
 ;; Array Type
 
+(defmethod coerce-data :around (value (schema array))
+  (with-validation schema
+    (call-next-method)))
+
 (defmethod coerce-data (value (schema array))
   (if (array-items schema)
       (map 'vector
@@ -136,6 +153,10 @@
 
 ;;
 ;; Object Type
+
+(defmethod coerce-data :around (value (schema object))
+  (with-validation schema
+    (call-next-method)))
 
 (defmethod coerce-data (value (schema object))
   (unless (typep value 'association-list)
@@ -155,18 +176,11 @@
                  (cond
                    ((or prop
                         (schemap additional-properties))
-                    (handler-case (coerce-data field-value (if prop
-                                                               (property-type prop)
-                                                               additional-properties))
-                      (schema-validation-failed (e)
-                        (error 'schema-validation-failed
-                               :value value
-                               :schema schema
-                               :message (format nil "Validation failed at ~S:~%  ~S"
-                                                key
-                                                (slot-value e 'message))))))
+                    (coerce-data field-value (if prop
+                                                 (property-type prop)
+                                                 additional-properties)))
                    ((not additional-properties)
-                    (error 'schema-validation-failed
+                    (error 'schema-coercion-failed
                            :value value
                            :schema schema
                            :message (format nil "Unpermitted property: ~S" key)))
