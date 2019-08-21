@@ -174,9 +174,13 @@
                              :key #'property-name
                              :test #'equal)
             if prop
-              collect (cons key (coerce-data field-value (property-type prop)))
+              collect (cons key
+                            (and field-value
+                                 (coerce-data field-value (property-type prop))))
             else if additional-properties
-              collect (cons key (coerce-data field-value additional-properties))
+              collect (cons key
+                            (and field-value
+                                 (coerce-data field-value additional-properties)))
             else if (not *force-allow-additional-properties*)
               do (error 'schema-coercion-failed
                         :value value
