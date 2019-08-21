@@ -2,6 +2,7 @@
   (:mix #:apispec/classes/schema/core
         #:cl)
   (:use #:apispec/classes/schema/coerce
+        #:apispec/classes/schema/composition
         #:apispec/classes/schema/errors
         #:rove)
   (:import-from #:apispec/classes/schema/validate
@@ -10,7 +11,8 @@
                 #:timestamp=
                 #:universal-to-timestamp)
   (:import-from #:assoc-utils
-                #:aget))
+                #:aget
+                #:alist=))
 (in-package #:apispec/tests/classes/schema/coerce)
 
 (deftest coerce-number-tests
@@ -125,3 +127,52 @@
                           '(object
                             (("name" (string :default "nobody")))))
              '(("name" . "nobody")))))
+
+(deftest composition-schema-tests
+  (testing "oneOf"
+    (let ((schema (make-instance 'composition-schema
+                                 :one-of
+                                 (list (schema (object (("bark" boolean)
+                                                        ("breed" (string :enum '("Dingo" "Husky" "Retriever" "Shepherd"))))))
+                                       (schema (object (("hunts" boolean)
+                                                        ("age" integer))))))))
+      (ok (equal (coerce-data '(("bark" . t)
+                                ("breed" . "Dingo"))
+                              schema)
+                 '(("bark" . t)
+                   ("breed" . "Dingo"))))
+      (ok (signals (coerce-data '(("bark" . t)
+                                  ("hunts" . t))
+                                schema)
+                   'schema-coercion-failed))
+      (ok (signals (coerce-data '(("bark" . t)
+                                  ("hunts" . t)
+                                  ("breed" . "Husky")
+                                  ("age" . 3))
+                                schema)
+                   'schema-coercion-failed))))
+  (testing "anyOf"
+    (let ((schema (make-instance 'composition-schema
+                                 :any-of
+                                 (list (schema (object (("age" integer) ("nickname" string))
+                                                       :required '("age")))
+                                       (schema (object (("pet_type" (string :enum '("Cat" "Dog")))
+                                                        ("hunts" boolean))
+                                                       :required '("pet_type")))))))
+      (ok (equal (coerce-data '(("age" . "11")) schema)
+                 '(("age" . 11))))
+      (ok (equal (coerce-data '(("pet_type" . "Cat") ("hunts" . t)) schema)
+                 '(("pet_type" . "Cat") ("hunts" . t))))
+      (ok (alist= (coerce-data '(("nickname" . "Fido")
+                                 ("pet_type" . "Dog")
+                                 ("age" . 4))
+                               schema)
+                  '(("nickname" . "Fido")
+                    ("pet_type" . "Dog")
+                    ("age" . 4)))))))
+
+(deftest negative-schema-tests
+  (ok (equal (coerce-data "Cat" (make-instance 'negative-schema :not (schema integer)))
+             "Cat"))
+  (ok (signals (coerce-data 11 (make-instance 'negative-schema :not (schema integer)))
+               'schema-coercion-failed)))

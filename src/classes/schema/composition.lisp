@@ -2,9 +2,11 @@
   (:use #:cl
         #:apispec/utils)
   (:import-from #:apispec/classes/schema/core
+                #:type
+                #:schema
                 #:object)
   (:import-from #:apispec/classes/schema/coerce
-                #:*force-allow-additional-properties*
+                #:*ignore-additional-properties*
                 #:coerce-data)
   (:import-from #:apispec/classes/schema/errors
                 #:schema-error
@@ -12,7 +14,10 @@
   (:export #:composition-schema
            #:schema-one-of
            #:schema-any-of
-           #:schema-all-of))
+           #:schema-all-of
+
+           #:negative-schema
+           #:schema-not))
 (in-package #:apispec/classes/schema/composition)
 
 (defclass composition-schema (object)
@@ -29,6 +34,13 @@
            :initform nil
            :reader schema-all-of)))
 
+(defclass negative-schema (schema)
+  ((type :type null
+         :initform nil)
+   (not :type schema
+        :initarg :not
+        :reader schema-not)))
+
 (defmethod coerce-data (value (schema composition-schema))
   (flet ((map-schemas (schemas)
            (mapcar (lambda (subschema)
@@ -41,7 +53,8 @@
                    schemas)))
     (cond
       ((schema-one-of schema)
-       (let ((results (map-schemas (schema-one-of schema))))
+       (let ((results (let ((*ignore-additional-properties* t))
+                        (map-schemas (schema-one-of schema)))))
          (unless (= 1 (count t results :key #'cdr))
            (error 'schema-coercion-failed
                   :value value
@@ -49,7 +62,7 @@
                   :message "Multiple schemas are possible for oneOf composition schema"))
          (car (find-if #'cdr results))))
       ((schema-any-of schema)
-       (let ((results (let ((*force-allow-additional-properties* t))
+       (let ((results (let ((*ignore-additional-properties* t))
                         (map-schemas (schema-any-of schema)))))
          (when (= 0 (count t results :key #'cdr))
            (error 'schema-coercion-failed
@@ -61,3 +74,13 @@
        (mapcan (lambda (subschema)
                  (coerce-data value subschema))
                (schema-all-of schema))))))
+
+(defmethod coerce-data (value (schema negative-schema))
+  (handler-case
+      (coerce-data value (schema-not schema))
+    (schema-error ()
+      (return-from coerce-data value)))
+  (error 'schema-coercion-failed
+         :value value
+         :schema schema
+         :message "Possible for negative schema"))

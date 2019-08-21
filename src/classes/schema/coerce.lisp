@@ -158,7 +158,7 @@
   (with-validation schema
     (call-next-method)))
 
-(defparameter *force-allow-additional-properties* nil)
+(defparameter *ignore-additional-properties* nil)
 
 (defmethod coerce-data (value (schema object))
   (unless (typep value 'association-list)
@@ -177,15 +177,15 @@
               collect (cons key
                             (and field-value
                                  (coerce-data field-value (property-type prop))))
-            else if additional-properties
-              collect (cons key
-                            (and field-value
-                                 (coerce-data field-value additional-properties)))
-            else if (not *force-allow-additional-properties*)
-              do (error 'schema-coercion-failed
-                        :value value
-                        :schema schema
-                        :message (format nil "Unpermitted property: ~S" key)))
+            else if (not *ignore-additional-properties*)
+              collect (if additional-properties
+                          (cons key
+                                (and field-value
+                                     (coerce-data field-value additional-properties)))
+                          (error 'schema-coercion-failed
+                                 :value value
+                                 :schema schema
+                                 :message (format nil "Unpermitted property: ~S" key))))
       (loop for prop in properties
             for type = (property-type prop)
             when (and (schema-has-default-p type)
