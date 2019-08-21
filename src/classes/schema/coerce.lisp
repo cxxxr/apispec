@@ -158,6 +158,8 @@
   (with-validation schema
     (call-next-method)))
 
+(defparameter *force-allow-additional-properties* nil)
+
 (defmethod coerce-data (value (schema object))
   (unless (typep value 'association-list)
     (error 'schema-coercion-failed
@@ -166,34 +168,27 @@
 
   (let ((properties (object-properties schema)))
     (nconc
-     (loop with additional-properties = (object-additional-properties schema)
-           for (key . field-value) in value
-           for prop = (find key properties
-                            :key #'property-name
-                            :test #'equal)
-           collect
-           (cons key
-                 (cond
-                   ((or prop
-                        (schemap additional-properties))
-                    (coerce-data field-value (if prop
-                                                 (property-type prop)
-                                                 additional-properties)))
-                   ((not additional-properties)
-                    (error 'schema-coercion-failed
-                           :value value
-                           :schema schema
-                           :message (format nil "Unpermitted property: ~S" key)))
-                   ((eq additional-properties t)
-                    field-value)
-                   (t (error "Not allowed branch. Perhaps a bug of apispec.")))))
-     (loop for prop in properties
-           for type = (property-type prop)
-           when (and (schema-has-default-p type)
-                     (not (find (property-name prop)
-                                value
-                                :key #'car
-                                :test #'equal)))
-             collect
-             (cons (property-name prop)
-                   (schema-default type))))))
+      (loop with additional-properties = (object-additional-properties schema)
+            for (key . field-value) in value
+            for prop = (find key properties
+                             :key #'property-name
+                             :test #'equal)
+            if prop
+              collect (cons key (coerce-data field-value (property-type prop)))
+            else if additional-properties
+              collect (cons key (coerce-data field-value additional-properties))
+            else if (not *force-allow-additional-properties*)
+              do (error 'schema-coercion-failed
+                        :value value
+                        :schema schema
+                        :message (format nil "Unpermitted property: ~S" key)))
+      (loop for prop in properties
+            for type = (property-type prop)
+            when (and (schema-has-default-p type)
+                      (not (find (property-name prop)
+                                 value
+                                 :key #'car
+                                 :test #'equal)))
+            collect
+            (cons (property-name prop)
+                  (schema-default type))))))
