@@ -56,7 +56,7 @@
               (match-content-type (encoding-content-type encoding)
                                   content-type
                                   :comma-separated t)
-            (error (e)
+            (error ()
               nil))
           (error 'encoding-content-type-mismatch
                  :given content-type

@@ -68,12 +68,12 @@
     (write-char #\])))
 
 (defun encode-boolean (value)
-  (princ (case value
-           ('t "true")
-           ('nil "false")
-           (otherwise (error 'body-encode-error
-                             :value value
-                             :schema (schema boolean)))))
+  (princ (cond
+           ((eq value t) "true")
+           ((eq value nil) "false")
+           (t (error 'body-encode-error
+                     :value value
+                     :schema (schema boolean)))))
   (values))
 
 (defun encode-data-to-json (value schema)
