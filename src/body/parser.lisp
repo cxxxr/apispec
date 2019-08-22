@@ -35,9 +35,10 @@
          (string (parse-multipart-string value content-type))
          (stream (parse-multipart-stream value content-type))))
       ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
-       (slurp-stream value))
-      (t
+       value)
+      ((starts-with-subseq "text/" (string-downcase content-type))
        (etypecase value
          (string value)
          (stream (babel:octets-to-string (slurp-stream value)
-                                         :encoding (detect-charset content-type))))))))
+                                         :encoding (detect-charset content-type)))))
+      (t value))))

@@ -25,8 +25,8 @@
                                       :schema (schema binary)))
            (data (babel:string-to-octets "Hello, API"))
            (stream (flex:make-in-memory-input-stream data)))
-      (ok (equal (parse-with-media-type stream media-type "application/octet-stream")
-                 data))))
+      (ok (eq (parse-with-media-type stream media-type "application/octet-stream")
+              stream))))
   (testing "application/x-www-form-urlencoded"
     (let* ((media-type (make-instance 'media-type
                                       :schema (schema (object
