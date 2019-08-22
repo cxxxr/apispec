@@ -30,8 +30,7 @@
 
            #:request
            #:request-path-parameters
-           #:request-header-parameters
-           #:request-content))
+           #:request-header-parameters))
 (in-package #:apispec/classes/operation)
 
 (declaim-safety)
@@ -74,8 +73,7 @@
 (defstruct (apispec-request (:include request)
                             (:conc-name request-))
   path-parameters
-  header-parameters
-  content)
+  header-parameters)
 
 (defun validate-request (operation env &key path-parameters additional-parameters)
   (let ((parameters (append additional-parameters
@@ -116,8 +114,6 @@
                                              operation-cookie-parameters)))
                            :body-parameters (and (association-list-p body 'string t)
                                                  body)
-                           :content (and (not (association-list-p body 'string t))
-                                         body)
                            :allow-other-keys t
                            env))))))
 
