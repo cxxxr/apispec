@@ -8,11 +8,6 @@ env:
     - COVERAGE_EXCLUDE=tests
   matrix:
     - LISP=sbcl-bin COVERAGE=1
-    - LISP=ccl-bin
-
-matrix:
-  allow_failures:
-    - LISP: ccl-bin
 
 install:
   # Roswell
