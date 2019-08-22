@@ -190,7 +190,7 @@
                                       (make-from-hash 'request-body (gethash "requestBody" hash)))
                    :responses (loop for key being each hash-key of (gethash "responses" hash)
                                     using (hash-value value)
-                                    collect (cons key
+                                    collect (cons (princ-to-string key)
                                                   (make-from-hash 'response value)))
                    :deprecated (gethash "deprecated" hash))))
 
