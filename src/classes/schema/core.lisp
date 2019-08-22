@@ -85,8 +85,8 @@
        (otherwise schema-class-name)))
 
 (defclass schema ()
-  ((type :type cl:string
-         :initform (error ":type is required for SCHEMA")
+  ((type :type (or cl:string (eql t))
+         :initform t
          :reader schema-type)
    (format :type (or cl:string null)
            :initform nil

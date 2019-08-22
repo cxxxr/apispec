@@ -4,13 +4,26 @@
                 #:paths
                 #:compile-paths
                 #:find-operation)
-  (:export #:find-route))
+  (:export #:router
+           #:make-router
+           #:find-route))
 (in-package #:apispec/router)
 
-(defun find-route (paths method path-info)
-  (let ((dispatcher (compile-paths paths)))
-    (multiple-value-bind (matched-path path-parameters)
-        (funcall dispatcher path-info)
-      (when matched-path
-        (values (find-operation matched-path method)
-                path-parameters)))))
+(defstruct (router (:constructor %make-router))
+  paths
+  %dispatch-fn)
+
+(defun make-router (paths)
+  (%make-router :paths paths
+                :%dispatch-fn (compile-paths paths)))
+
+(defun find-path-item (router path-info)
+  (funcall (router-%dispatch-fn router)
+           path-info))
+
+(defun find-route (router method path-info)
+  (multiple-value-bind (matched-path path-parameters)
+      (find-path-item router path-info)
+    (when matched-path
+      (values (find-operation matched-path method)
+              path-parameters))))

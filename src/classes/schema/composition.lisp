@@ -35,9 +35,7 @@
            :reader schema-all-of)))
 
 (defclass negative-schema (schema)
-  ((type :type null
-         :initform nil)
-   (not :type schema
+  ((not :type schema
         :initarg :not
         :reader schema-not)))
 

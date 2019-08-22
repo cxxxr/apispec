@@ -61,4 +61,5 @@
                  #:apispec/classes/path
                  #:apispec/body
                  #:apispec/router
+                 #:apispec/file-loader
                  #:apispec/errors))
