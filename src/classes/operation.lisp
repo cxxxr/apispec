@@ -9,10 +9,13 @@
                 #:parse-headers
                 #:parse-cookie-string)
   (:import-from #:apispec/classes/request-body
+                #:parse-request-body
                 #:request-body)
   (:import-from #:apispec/classes/response
                 #:responses
                 #:encode-response)
+  (:import-from #:lack.request
+                #:request)
   (:export #:operation
            #:operation-tags
            #:operation-summary
@@ -23,7 +26,12 @@
            #:operation-responses
            #:operation-deprecated-p
            #:validate-request
-           #:validate-response))
+           #:validate-response
+
+           #:request
+           #:request-path-parameters
+           #:request-header-parameters
+           #:request-content))
 (in-package #:apispec/classes/operation)
 
 (declaim-safety)
@@ -63,6 +71,12 @@
                :initform nil
                :reader operation-deprecated-p)))
 
+(defstruct (apispec-request (:include request)
+                            (:conc-name request-))
+  path-parameters
+  header-parameters
+  content)
+
 (defun validate-request (operation env &key path-parameters additional-parameters)
   (let ((parameters (append additional-parameters
                             (operation-parameters operation))))
@@ -77,23 +91,35 @@
           else if (string= in "cookie")
           collect parameter into operation-cookie-parameters
           finally
-          (return
-            (append
-              (parse-path-parameters
-                path-parameters
-                operation-path-parameters)
-              (parse-query-string
-                (getf env :query-string)
-                operation-query-parameters)
-              (let ((headers (getf env :headers)))
-                (append
-                  (parse-headers
-                    headers
-                    operation-header-parameters)
-                  (when headers
-                    (parse-cookie-string
-                      (gethash "cookie" headers)
-                      operation-cookie-parameters)))))))))
+          (let ((body (and (operation-request-body operation)
+                           (parse-request-body (getf env :raw-body)
+                                               (getf env :content-type)
+                                               (operation-request-body operation)))))
+            (return (apply #'make-apispec-request
+                           :env env
+                           :method (getf env :request-method)
+                           :uri (getf env :request-uri)
+                           :uri-scheme (getf env :url-scheme)
+                           :path-parameters (parse-path-parameters
+                                              path-parameters
+                                              operation-path-parameters)
+                           :query-parameters (parse-query-string
+                                               (getf env :query-string)
+                                               operation-query-parameters)
+                           :header-parameters (parse-headers
+                                                (getf env :headers)
+                                                operation-header-parameters)
+                           :cookies (let ((headers (getf env :headers)))
+                                      (and headers
+                                           (parse-cookie-string
+                                             (gethash "cookie" headers)
+                                             operation-cookie-parameters)))
+                           :body-parameters (and (association-list-p body 'string t)
+                                                 body)
+                           :content (and (not (association-list-p body 'string t))
+                                         body)
+                           :allow-other-keys t
+                           env))))))
 
 (defun validate-response (operation status headers data)
   (encode-response status

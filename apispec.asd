@@ -8,6 +8,8 @@
   :pathname "src"
   :in-order-to ((test-op (test-op "apispec/tests"))))
 
+(register-system-packages "lack-request" '(#:lack.request))
+
 (defsystem "apispec/tests"
   :depends-on ("apispec"
                "cl-interpol"
