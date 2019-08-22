@@ -11,9 +11,9 @@
 (in-package #:apispec/classes/media-type/class)
 
 (defclass media-type ()
-  ((schema :type (or schema null)
+  ((schema :type (or schema (eql t))
            :initarg :schema
-           :initform nil
+           :initform t
            :reader media-type-schema)
    (encoding :type (association-list string encoding)
              :initarg :encoding

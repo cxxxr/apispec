@@ -6,7 +6,7 @@
 
 (deftest header-tests
   (ng (header-required-p (make-instance 'header)))
-  (ok (null (header-schema (make-instance 'header))))
+  (ok (eq (header-schema (make-instance 'header)) t))
   (ng (header-explode-p (make-instance 'header))))
 
 (deftest coerce-with-header-tests

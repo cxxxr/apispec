@@ -31,9 +31,9 @@
              :initarg :required
              :initform nil
              :reader header-required-p)
-   (schema :type (or schema null)
+   (schema :type (or schema (eql t))
            :initarg :schema
-           :initform nil
+           :initform t
            :reader header-schema)
    (explode :type boolean
             :initarg :explode
@@ -50,6 +50,6 @@
     (parse-simple-value value
                         :as (header-schema header)
                         :explode (header-explode-p header))
-    (or (header-schema header) t)))
+    (header-schema header)))
 
 (undeclaim-safety)
