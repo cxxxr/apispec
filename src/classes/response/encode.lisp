@@ -10,9 +10,10 @@
   (:import-from #:apispec/classes/media-type
                 #:media-type-schema)
   (:import-from #:apispec/classes/schema
+                #:validate-data
                 #:schema-error)
   (:import-from #:apispec/classes/header
-                #:coerce-with-header)
+                #:header-schema)
   (:import-from #:apispec/body
                 #:encode-data
                 #:body-encode-error)
@@ -74,15 +75,21 @@
           (loop for (header-name . header-value) in headers
                 for response-header = (aget (response-headers response)
                                             (string-downcase header-name))
+                if header-value
                 append (list (intern (string-upcase header-name) :keyword)
                              (if response-header
-                                 (handler-case
-                                     (coerce-with-header header-value response-header)
-                                   (schema-error ()
-                                     (error 'response-header-validation-failed
-                                            :name header-name
-                                            :value header-value
-                                            :header response-header)))
+                                 (progn
+                                   (handler-case
+                                       (validate-data header-value (header-schema response-header))
+                                     (schema-error ()
+                                       (error 'response-header-validation-failed
+                                              :name header-name
+                                              :value header-value
+                                              :header response-header)))
+                                   (if (or (listp header-value)
+                                           (vectorp header-value))
+                                       (format nil "~{~A~^, ~}" (coerce header-value 'list))
+                                       header-value))
                                  header-value)))
           (if (null (response-content response))
               (if data
