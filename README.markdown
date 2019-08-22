@@ -1,5 +1,8 @@
 # apispec
 
+[![Build Status](https://travis-ci.org/fukamachi/apispec.svg?branch=master)](https://travis-ci.org/fukamachi/apispec)
+[![Coverage Status](https://coveralls.io/repos/fukamachi/apispec/badge.svg?branch=master)](https://coveralls.io/r/fukamachi/apispec)
+
 A Common Lisp library for handling Web API specifications. This allows to validate and parse HTTP request headers, parameters and bodies by OpenAPI3 specification.
 
 ## Prerequisite
