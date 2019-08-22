@@ -30,7 +30,7 @@ This software is still ALPHA quality. The APIs will be likely to change.
 ```common-lisp
 (defvar *router* (apispec:spec-router *spec*))
 
-(apispec:find-route router :GET "/products/12")
+(apispec:find-route *router* :GET "/products/12")
 ;=> #<APISPEC/CLASSES/OPERATION:OPERATION {1003DDB073}>
 ```
 
@@ -42,6 +42,7 @@ This software is still ALPHA quality. The APIs will be likely to change.
           lack.request:request-cookies
           apispec:request-path-parameters))
 
+;; Clack application
 (defvar *app*
   (lambda (env)
     (multiple-value-bind (operation path-parameters)
@@ -51,14 +52,17 @@ This software is still ALPHA quality. The APIs will be likely to change.
       ;; Getting Lack.Request
       (let ((request (apispec:validate-request operation env
                                                :path-parameters path-parameters)))
+        ;; Write the main application here.
+
+        ;; Accessors for getting each parameters.
         (request-query-parameters request)  ;=> Query parameters (alist)
         (request-body-parameters request)   ;=> Body parameters (alist)
         (request-path-parameters request)   ;=> Path parameters (alist)
         (request-cookies)                   ;=> Cookie parameters (alist)
 
-        ;; main application
         ))))
 
+;; Start the server
 (clack:clackup *app*)
 ```
 
@@ -79,18 +83,22 @@ This software is still ALPHA quality. The APIs will be likely to change.
 ### Custom Encoder for standard objects
 
 ```common-lisp
-(defclass vocaloid ()
+(import 'lack.response:make-response)
+
+;; Custom class
+(defclass product ()
   ((id :initarg :id)
    (name :initarg :name)
    (is-hidden :initarg :is-hidden)))
 
-(defmethod apispec:encode-object ((vocaloid vocaloid))
-  `(("id" . ,(slot-value vocaloid 'id))
-    ("name" . ,(slot-value vocaloid 'name))
-    ("is_hidden" . ,(slot-value vocaloid 'is-hidden))))
+;; Define APISPEC:ENCODE-OBJECT for the class
+(defmethod apispec:encode-object ((product product))
+  `(("id" . ,(slot-value product 'id))
+    ("name" . ,(slot-value product 'name))
+    ("is_hidden" . ,(slot-value product 'is-hidden))))
 
 (defvar *yukari*
-  (make-instance 'vocaloid
+  (make-instance 'product
                  :id 14
                  :name "結月ゆかり"
                  :is-hidden nil))
