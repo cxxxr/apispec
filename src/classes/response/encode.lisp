@@ -64,19 +64,20 @@
 
 (defun encode-response (status headers data responses)
   (check-type status (integer 100 599))
-  (assert (association-list-p headers 'string t))
   (check-type responses responses)
-  (let* ((content-type (aget headers "content-type"))
+  (let* ((content-type (getf headers :content-type))
          (content-type (or (and (stringp content-type)
                                 (ppcre:scan-to-strings "[^;\\s]+" content-type))
                            (default-content-type data)))
          (response (find-response responses status)))
     (list status
-          (loop for (header-name . header-value) in headers
-                for response-header = (aget (response-headers response)
-                                            (string-downcase header-name))
+          (loop for (header-name header-value) on headers by #'cddr
+                for response-header = (cdr (assoc header-name
+                                                  (response-headers response)
+                                                  :key #'car
+                                                  :test #'string-equal))
                 if header-value
-                append (list (intern (string-upcase header-name) :keyword)
+                append (list header-name
                              (if response-header
                                  (progn
                                    (handler-case

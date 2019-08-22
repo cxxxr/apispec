@@ -61,7 +61,7 @@
 
 (deftest encode-response-tests
   (ok (equalp (encode-response 200
-                               '(("content-type" . "application/json"))
+                               '(:content-type "application/json")
                                '(("id" . 1)
                                  ("is_registered" . nil))
                                `(("200" . ,(make-instance 'response

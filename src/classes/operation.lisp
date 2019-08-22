@@ -16,6 +16,12 @@
                 #:encode-response)
   (:import-from #:lack.request
                 #:request)
+  (:import-from #:lack.response
+                #:response
+                #:response-status
+                #:response-headers
+                #:response-body
+                #:finalize-cookies)
   (:export #:operation
            #:operation-tags
            #:operation-summary
@@ -117,10 +123,13 @@
                            :allow-other-keys t
                            env))))))
 
-(defun validate-response (operation status headers data)
-  (encode-response status
-                   headers
-                   data
+(defun validate-response (operation response)
+  (check-type operation operation)
+  (check-type response response)
+  (finalize-cookies response)
+  (encode-response (response-status response)
+                   (response-headers response)
+                   (response-body response)
                    (operation-responses operation)))
 
 (undeclaim-safety)

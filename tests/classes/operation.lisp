@@ -14,6 +14,8 @@
   (:import-from #:lack.request
                 #:request-query-parameters
                 #:request-cookies)
+  (:import-from #:lack.response
+                #:make-response)
   (:import-from #:assoc-utils
                 #:alist-hash))
 (in-package #:apispec/tests/classes/operation)
@@ -109,9 +111,9 @@
                                       :responses
                                       `(("200" . ,200-response)))))
         (ok (equal (validate-response operation
-                                      200
-                                      '(("content-type" . "application/json; charset=utf-8"))
-                                      '(("hello" . "こんにちは")))
+                                      (make-response 200
+                                                     '(:content-type "application/json; charset=utf-8")
+                                                     '(("hello" . "こんにちは"))))
                    '(200 (:content-type "application/json; charset=utf-8") ("{\"hello\":\"こんにちは\"}"))))))
     (testing "204 No Content"
       (let* ((response (make-instance 'response
@@ -122,7 +124,5 @@
                                        :responses `(("204" . ,response)
                                                     ("2XX" . ,200-response)))))
         (ok (equal (validate-response operation
-                                      204
-                                      '()
-                                      '())
+                                      (make-response 204))
                    '(204 () ())))))))

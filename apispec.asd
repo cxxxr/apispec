@@ -9,6 +9,7 @@
   :in-order-to ((test-op (test-op "apispec/tests"))))
 
 (register-system-packages "lack-request" '(#:lack.request))
+(register-system-packages "lack-response" '(#:lack.response))
 
 (defsystem "apispec/tests"
   :depends-on ("apispec"
