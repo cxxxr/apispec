@@ -25,7 +25,7 @@
                                       :schema (schema binary)))
            (data (babel:string-to-octets "Hello, API"))
            (stream (flex:make-in-memory-input-stream data)))
-      (ok (eq (parse-with-media-type stream media-type "application/octet-stream")
+      (ok (eq (parse-with-media-type stream media-type "application/octet-stream" nil)
               stream))))
   (testing "application/x-www-form-urlencoded"
     (let* ((media-type (make-instance 'media-type
@@ -34,7 +34,7 @@
                                                          ("address" string))))))
            (data (babel:string-to-octets "id=1&address=Tokyo,%20Japan"))
            (stream (flex:make-in-memory-input-stream data)))
-      (ok (equal (parse-with-media-type stream media-type "application/x-www-form-urlencoded")
+      (ok (equal (parse-with-media-type stream media-type "application/x-www-form-urlencoded" nil)
                  '(("id" . 1) ("address" . "Tokyo, Japan"))))))
   (testing "multipart"
     (let* ((media-type (make-instance 'media-type
@@ -65,7 +65,7 @@
                                 #?"{\"type\":\"culture\"}\r\n"
                                 #?"-----------------------------186454651713519341951581030105--\r\n")))
            (stream (flex:make-in-memory-input-stream data)))
-      (ok (equal (parse-with-media-type stream media-type content-type)
+      (ok (equal (parse-with-media-type stream media-type content-type nil)
                  '(("id" . 1)
                    ("address" . "東京都台東区上野２丁目７−１２")
                    ("historyMetadata" . (("type" . "culture")))))))))

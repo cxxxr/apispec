@@ -65,6 +65,7 @@
           (parse-request-body
             (make-stream *multipart-data*)
             "multipart/form-data; boundary=\"---------------------------186454651713519341951581030105\""
+            nil
             request-body)
           '(("id" . 1)
             ("address" . "東京都台東区上野２丁目７−１２")
@@ -73,6 +74,7 @@
           (parse-request-body
             (make-stream "{\"id\":1,\"address\":\"東京都台東区上野２丁目７−１２\",\"historyMetadata\":{\"type\":\"culture\"}}")
             "application/json"
+            nil
             request-body)
           '(("id" . 1)
             ("address" . "東京都台東区上野２丁目７−１２")
@@ -84,6 +86,7 @@
                       (quri:url-encode "東京都台東区上野２丁目７−１２")
                       (quri:url-encode "{\"type\":\"culture\"}")))
             "application/x-www-form-urlencoded"
+            nil
             request-body)
           '(("id" . 1)
             ("address" . "東京都台東区上野２丁目７−１２")
@@ -93,6 +96,7 @@
   (ok (signals (parse-request-body
                  (make-stream "blah")
                  "multipart/form-data"
+                 nil
                  (make-instance 'request-body
                                 :content
                                 `(("multipart/form-data" . ,(make-instance 'media-type :schema (schema object))))))
@@ -100,6 +104,7 @@
   (ok (signals (parse-request-body
                  (make-stream *multipart-data*)
                  "multipart/form-data; boundary=\"---------------------------186454651713519341951581030105\""
+                 nil
                  (make-instance 'request-body
                                 :content
                                 `(("application/json" . ,(make-instance 'media-type :schema (schema object))))))

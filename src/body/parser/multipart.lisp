@@ -37,15 +37,15 @@
                                                              (let ((content-type (gethash "content-type" headers)))
                                                                (cond
                                                                  ((starts-with-subseq "application/json" (string-downcase content-type))
-                                                                  (parse-json-stream body content-type))
+                                                                  (parse-json-stream body content-type nil))
                                                                  ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
-                                                                  (parse-urlencoded-stream body))
+                                                                  (parse-urlencoded-stream body nil))
                                                                  ((starts-with-subseq "multipart/" (string-downcase content-type))
-                                                                  (parse-multipart-stream body content-type))
+                                                                  (parse-multipart-stream body content-type nil))
                                                                  ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
                                                                   body)
                                                                  (t
-                                                                  (babel:octets-to-string (slurp-stream body (gethash "content-length" headers))
+                                                                  (babel:octets-to-string (slurp-stream body nil)
                                                                                           :encoding (detect-charset content-type))))))))
                                      (collect-headers (cons name headers))))))
                      (if content-length
@@ -66,4 +66,5 @@
 (defun parse-multipart-string (string content-type)
   (parse-multipart-stream
     (flex:make-in-memory-input-stream (babel:string-to-octets string))
-    content-type))
+    content-type
+    (length string)))
