@@ -1,0 +1,65 @@
+openapi: '3.0.1'
+info:
+  description: >-
+    Sample RESTful APIs
+  title: Sample RESTful APIs
+  version: 0.9.1
+paths:
+  /users:
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Successfully returns a list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+              required: [name]
+      responses:
+        '204':
+          description: Successfully created a new product.
+  /users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully returns a product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: No product found
+          content:
+            application/json:
+              schema:
+                properties:
+                  error:
+                    type: string
+                    enum: [no-product]
+components:
+  schemas:
+    Product:
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        is_admin:
+          type: boolean

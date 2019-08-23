@@ -30,7 +30,7 @@ This software is still ALPHA quality. The APIs will be likely to change.
 ```common-lisp
 (defvar *router* (apispec:spec-router *spec*))
 
-(apispec:find-route *router* :GET "/products/12")
+(apispec:find-route *router* :GET "/users/12")
 ;=> #<APISPEC/CLASSES/OPERATION:OPERATION {1003DDB073}>
 ```
 
@@ -76,8 +76,8 @@ This software is still ALPHA quality. The APIs will be likely to change.
                                           '(:content-type "application/json")
                                           '(("id" . 3)
                                             ("name" . "初音ミク")
-                                            ("is_hidden" . nil))))
-;=> (200 (:CONTENT-TYPE "application/json") ("{\"id\":3,\"name\":\"初音ミク\",\"is_hidden\":false}"))
+                                            ("is_admin" . nil))))
+;=> (200 (:CONTENT-TYPE "application/json") ("{\"id\":3,\"name\":\"初音ミク\",\"is_admin\":false}"))
 ```
 
 ### Custom Encoder for standard objects
@@ -86,29 +86,33 @@ This software is still ALPHA quality. The APIs will be likely to change.
 (import 'lack.response:make-response)
 
 ;; Custom class
-(defclass product ()
+(defclass user ()
   ((id :initarg :id)
    (name :initarg :name)
-   (is-hidden :initarg :is-hidden)))
+   (is-admin :initarg :is-admin)))
 
 ;; Define APISPEC:ENCODE-OBJECT for the class
-(defmethod apispec:encode-object ((product product))
-  `(("id" . ,(slot-value product 'id))
-    ("name" . ,(slot-value product 'name))
-    ("is_hidden" . ,(slot-value product 'is-hidden))))
+(defmethod apispec:encode-object ((user user))
+  `(("id" . ,(slot-value user 'id))
+    ("name" . ,(slot-value user 'name))
+    ("is_admin" . ,(slot-value user 'is-admin))))
 
 (defvar *yukari*
-  (make-instance 'product
+  (make-instance 'user
                  :id 14
                  :name "結月ゆかり"
-                 :is-hidden nil))
+                 :is-admin nil))
 
 (apispec:validate-response operation
                            (make-response 200
                                           '(:content-type "application/json")
                                           *yukari*))
-;=> (200 (:CONTENT-TYPE "application/json") ("{\"id\":14,\"name\":\"結月ゆかり\",\"is_hidden\":false}"))
+;=> (200 (:CONTENT-TYPE "application/json") ("{\"id\":14,\"name\":\"結月ゆかり\",\"is_admin\":false}"))
 ```
+
+## Examples
+
+See [examples/](examples/).
 
 ## See Also
 
