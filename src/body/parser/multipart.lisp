@@ -22,35 +22,40 @@
 
 (defvar *multipart-force-stream* t)
 
-(defun parse-multipart-stream (stream content-type)
+(defun parse-multipart-stream (stream content-type content-length)
   (check-type stream stream)
   (check-type content-type string)
+  (check-type content-length (or integer null))
   (let ((results (with-collectors (collect-body collect-headers)
-    (let ((parser (make-multipart-parser
-                    content-type
-                    (lambda (name headers field-meta body)
-                      (declare (ignore field-meta))
-                      (collect-body (cons name
-                                          (if *multipart-force-stream*
-                                              body
-                                              (let ((content-type (gethash "content-type" headers)))
-                                                (cond
-                                                  ((starts-with-subseq "application/json" (string-downcase content-type))
-                                                   (parse-json-stream body content-type))
-                                                  ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
-                                                   (parse-urlencoded-stream body))
-                                                  ((starts-with-subseq "multipart/" (string-downcase content-type))
-                                                   (parse-multipart-stream body content-type))
-                                                  ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
-                                                   body)
-                                                  (t
-                                                   (babel:octets-to-string (slurp-stream body)
-                                                                           :encoding (detect-charset content-type))))))))
-                      (collect-headers (cons name headers))))))
-      (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
-            for read-bytes = (read-sequence buffer stream)
-            do (funcall parser (subseq buffer 0 read-bytes))
-            while (= read-bytes 1024))))))
+                   (let ((parser (make-multipart-parser
+                                   content-type
+                                   (lambda (name headers field-meta body)
+                                     (declare (ignore field-meta))
+                                     (collect-body (cons name
+                                                         (if *multipart-force-stream*
+                                                             body
+                                                             (let ((content-type (gethash "content-type" headers)))
+                                                               (cond
+                                                                 ((starts-with-subseq "application/json" (string-downcase content-type))
+                                                                  (parse-json-stream body content-type))
+                                                                 ((starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
+                                                                  (parse-urlencoded-stream body))
+                                                                 ((starts-with-subseq "multipart/" (string-downcase content-type))
+                                                                  (parse-multipart-stream body content-type))
+                                                                 ((starts-with-subseq "application/octet-stream" (string-downcase content-type))
+                                                                  body)
+                                                                 (t
+                                                                  (babel:octets-to-string (slurp-stream body (gethash "content-length" headers))
+                                                                                          :encoding (detect-charset content-type))))))))
+                                     (collect-headers (cons name headers))))))
+                     (if content-length
+                         (let ((buffer (make-array content-length :element-type '(unsigned-byte 8))))
+                           (read-sequence buffer stream)
+                           (funcall parser buffer))
+                         (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
+                               for read-bytes = (read-sequence buffer stream)
+                               do (funcall parser (subseq buffer 0 read-bytes))
+                               while (= read-bytes 1024)))))))
     (if (every (lambda (pair) (null (car pair))) results)
         (if (null (rest results))
             ;; Single multipart chunk

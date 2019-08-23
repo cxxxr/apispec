@@ -80,15 +80,19 @@
   `(eval-when (:compile-toplevel :load-toplevel :execute)
      (proclaim `(optimize ,,(intern (string :*previous-safety*) *package*)))))
 
-(defun slurp-stream (stream)
+(defun slurp-stream (stream &optional length)
   (if (typep stream 'flex:vector-stream)
       (coerce (flex::vector-stream-vector stream) '(simple-array (unsigned-byte 8) (*)))
-      (apply #'concatenate
-             '(simple-array (unsigned-byte 8) (*))
-             (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
-                   for read-bytes = (read-sequence buffer stream)
-                   collect (subseq buffer 0 read-bytes)
-                   while (= read-bytes 1024)))))
+      (if length
+          (let ((buffer (make-array length :element-type '(unsigned-byte 8))))
+            (read-sequence buffer stream)
+            buffer)
+          (apply #'concatenate
+                 '(simple-array (unsigned-byte 8) (*))
+                 (loop with buffer = (make-array 1024 :element-type '(unsigned-byte 8))
+                       for read-bytes = (read-sequence buffer stream)
+                       collect (subseq buffer 0 read-bytes)
+                       while (= read-bytes 1024))))))
 
 (defun detect-charset (content-type &optional (default babel:*default-character-encoding*))
   (multiple-value-bind (type subtype charset)

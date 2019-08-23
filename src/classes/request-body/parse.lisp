@@ -11,9 +11,10 @@
   (:export #:parse-request-body))
 (in-package #:apispec/classes/request-body/parse)
 
-(defun parse-request-body (body-stream content-type request-body)
+(defun parse-request-body (body-stream content-type content-length request-body)
   (check-type body-stream (or stream null))
   (check-type content-type (or string null))
+  (check-type content-length (or integer null))
   (check-type request-body request-body)
 
   (when body-stream
@@ -26,7 +27,7 @@
                :given content-type
                :expected (mapcar #'car (request-body-content request-body))))
       (handler-case
-          (parse-with-media-type body-stream media-type content-type)
+          (parse-with-media-type body-stream media-type content-type content-length)
         (schema-error (e)
           (error 'request-body-validation-failed
                  :value (slot-value e 'apispec/classes/schema/errors::value)

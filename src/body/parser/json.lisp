@@ -9,9 +9,9 @@
            #:parse-json-string))
 (in-package #:apispec/body/parser/json)
 
-(defun parse-json-stream (stream content-type)
+(defun parse-json-stream (stream content-type content-length)
   (jojo:parse
-    (babel:octets-to-string (slurp-stream stream)
+    (babel:octets-to-string (slurp-stream stream content-length)
                             :encoding (detect-charset content-type :utf-8))
     :as :alist))
 

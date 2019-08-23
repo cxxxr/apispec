@@ -22,12 +22,13 @@
   (:export #:parse-with-media-type))
 (in-package #:apispec/classes/media-type/parse)
 
-(defun parse-with-media-type (stream media-type content-type)
+(defun parse-with-media-type (stream media-type content-type content-length)
   (check-type stream stream)
   (check-type media-type media-type)
   (check-type content-type cl:string)
+  (check-type content-length (or integer null))
   (multiple-value-bind (parsed-values parsed-headers)
-      (parse-body stream content-type)
+      (parse-body stream content-type content-length)
     (coerce-data
       (if ;; The encoding object SHALL only apply to requestBody objects
         ;; when the media type is multipart or application/x-www-form-urlencoded.

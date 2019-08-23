@@ -98,6 +98,7 @@
           (let ((body (and (operation-request-body operation)
                            (parse-request-body (getf env :raw-body)
                                                (getf env :content-type)
+                                               (getf env :content-length)
                                                (operation-request-body operation)))))
             (return (apply #'make-apispec-request
                            :env env
