@@ -1,6 +1,8 @@
 (defpackage #:apispec/body/encoder/json
   (:use #:cl
         #:apispec/body/errors)
+  (:import-from #:apispec/body/encoder/custom
+                #:encode-object)
   (:import-from #:apispec/classes/schema
                 #:object
                 #:binary
@@ -24,7 +26,8 @@
 
 (defvar *empty* '#:empty)
 
-(defun encode-object (value schema)
+(defun encode-json-object (value schema)
+  (setf value (encode-object value))
   (write-char #\{)
   (let ((rest-value (copy-seq value))
         missing)
@@ -50,7 +53,7 @@
   (write-char #\})
   (values))
 
-(defun encode-array (value schema)
+(defun encode-json-array (value schema)
   (let ((items-schema (array-items schema)))
     (write-char #\[)
     (if (listp value)
@@ -67,7 +70,7 @@
                  (encode-data-to-json item items-schema)))
     (write-char #\])))
 
-(defun encode-boolean (value)
+(defun encode-json-boolean (value)
   (princ (cond
            ((eq value t) "true")
            ((eq value nil) "false")
@@ -78,9 +81,9 @@
 
 (defun encode-data-to-json (value schema)
   (typecase schema
-    (object (encode-object value schema))
-    (array (encode-array value schema))
-    (boolean (encode-boolean value))
+    (object (encode-json-object value schema))
+    (array (encode-json-array value schema))
+    (boolean (encode-json-boolean value))
     (binary (error "Can't encode binary data to JSON"))
     (otherwise
       (typecase value

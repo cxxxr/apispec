@@ -2,6 +2,8 @@
   (:use #:cl)
   (:import-from #:apispec/body/encoder/json
                 #:encode-data-to-json)
+  (:import-from #:apispec/body/encoder/custom
+                #:encode-object)
   (:import-from #:alexandria
                 #:starts-with-subseq)
   (:export #:encode-data
@@ -15,10 +17,3 @@
      (with-output-to-string (*standard-output*)
        (encode-data-to-json (encode-object value) schema)))
     (t (encode-object value))))
-
-(defgeneric encode-object (value)
-  (:method (value)
-    (typecase value
-      ((or standard-object
-           structure-object) (call-next-method))
-      (otherwise value))))
