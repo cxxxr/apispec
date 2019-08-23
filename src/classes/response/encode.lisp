@@ -56,19 +56,23 @@
 
 (defun default-content-type (data)
   (cond
-    ((association-list-p data 'string t)
-     "application/json")
     ((typep data '(vector (unsigned-byte 8)))
      "application/octet-stream")
+    ((or (typep data '(or standard-object
+                          structure-object))
+         (association-list-p data 'string t))
+     "application/json")
     (t "text/plain")))
 
 (defun encode-response (status headers data responses)
   (check-type status (integer 100 599))
   (check-type responses responses)
-  (let* ((content-type (getf headers :content-type))
+  (let* ((content-type (or (getf headers :content-type)
+                           (setf (getf headers :content-type)
+                                 (default-content-type data))))
          (content-type (or (and (stringp content-type)
                                 (ppcre:scan-to-strings "[^;\\s]+" content-type))
-                           (default-content-type data)))
+                           (error "Invalid Content-Type: ~S" content-type)))
          (response (find-response responses status)))
     (list status
           (loop for (header-name header-value) on headers by #'cddr
