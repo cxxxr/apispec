@@ -56,6 +56,7 @@
 
 (defun default-content-type (data)
   (cond
+    ((null data) nil)
     ((typep data '(vector (unsigned-byte 8)))
      "application/octet-stream")
     ((or (typep data '(or standard-object
@@ -67,49 +68,51 @@
 (defun encode-response (status headers data responses)
   (check-type status (integer 100 599))
   (check-type responses responses)
-  (let* ((content-type (or (getf headers :content-type)
-                           (setf (getf headers :content-type)
-                                 (default-content-type data))))
-         (content-type (or (and (stringp content-type)
-                                (ppcre:scan-to-strings "[^;\\s]+" content-type))
-                           (error "Invalid Content-Type: ~S" content-type)))
-         (response (find-response responses status)))
-    (list status
-          (loop for (header-name header-value) on headers by #'cddr
-                for response-header = (cdr (assoc header-name
-                                                  (response-headers response)
-                                                  :key #'car
-                                                  :test #'string-equal))
-                if header-value
-                append (list header-name
-                             (if response-header
-                                 (progn
-                                   (handler-case
-                                       (validate-data header-value (header-schema response-header))
-                                     (schema-error ()
-                                       (error 'response-header-validation-failed
-                                              :name header-name
-                                              :value header-value
-                                              :header response-header)))
-                                   (if (or (listp header-value)
-                                           (vectorp header-value))
-                                       (format nil "~{~A~^, ~}" (coerce header-value 'list))
-                                       header-value))
-                                 header-value)))
-          (if (null (response-content response))
-              (if data
-                  (error 'response-body-not-allowed
-                         :code status)
-                  nil)
-              (let ((media-type (find-media-type response content-type)))
-                (list (let ((schema (or (and media-type
-                                             (media-type-schema media-type))
-                                        t)))
-                        (handler-case
-                            (encode-data data schema content-type)
-                          (body-encode-error (e)
-                            (error 'response-validation-failed
-                                   :value data
-                                   :schema schema
-                                   :content-type content-type
-                                   :reason (princ-to-string e)))))))))))
+  (let ((content-type (or (getf headers :content-type)
+                          (default-content-type data)))
+        (response (find-response responses status)))
+    (when (and (response-content response)
+               content-type)
+      (setf (getf headers :content-type) content-type))
+    (let ((content-type (and (stringp content-type)
+                             (or (ppcre:scan-to-strings "[^;\\s]+" content-type)
+                                 (error "Invalid Content-Type: ~S" content-type)))))
+      (list status
+            (loop for (header-name header-value) on headers by #'cddr
+                  for response-header = (cdr (assoc header-name
+                                                    (response-headers response)
+                                                    :key #'car
+                                                    :test #'string-equal))
+                  if header-value
+                  append (list header-name
+                               (if response-header
+                                   (progn
+                                     (handler-case
+                                         (validate-data header-value (header-schema response-header))
+                                       (schema-error ()
+                                         (error 'response-header-validation-failed
+                                                :name header-name
+                                                :value header-value
+                                                :header response-header)))
+                                     (if (or (listp header-value)
+                                             (vectorp header-value))
+                                         (format nil "~{~A~^, ~}" (coerce header-value 'list))
+                                         header-value))
+                                   header-value)))
+            (if (null (response-content response))
+                (if data
+                    (error 'response-body-not-allowed
+                           :code status)
+                    nil)
+                (let ((media-type (find-media-type response content-type)))
+                  (list (let ((schema (or (and media-type
+                                               (media-type-schema media-type))
+                                          t)))
+                          (handler-case
+                              (encode-data data schema content-type)
+                            (body-encode-error (e)
+                              (error 'response-validation-failed
+                                     :value data
+                                     :schema schema
+                                     :content-type content-type
+                                     :reason (princ-to-string e))))))))))))
