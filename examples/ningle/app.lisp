@@ -78,10 +78,15 @@ Usage:
 
 (setf (ningle:route *app* "/users" :method :GET)
       (lambda (params)
-        (declare (ignore params))
-        (setf (response-headers *response*)
-              '(:content-type "application/json"))
-        *db*))
+        (let ((name (aget params "name")))
+          (setf (response-headers *response*)
+                '(:content-type "application/json"))
+          (if name
+              (remove-if-not
+                (lambda (user)
+                  (search name (user-name user)))
+                *db*)
+              *db*))))
 
 (setf (ningle:route *app* "/users" :method :POST)
       (lambda (params)
@@ -101,6 +106,6 @@ Usage:
           (or user
               (progn
                 (setf (response-status *response*) 404)
-                '(("error" . "No user found")))))))
+                '(("error" . "User not found")))))))
 
 *app*

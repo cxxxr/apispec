@@ -7,7 +7,13 @@ info:
 paths:
   /users:
     get:
-      parameters: []
+      summary: Show a list of users.
+      parameters:
+        - name: name
+          in: query
+          description: Search by user names
+          schema:
+            type: string
       responses:
         '200':
           description: Successfully returns a list of users.
@@ -16,8 +22,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Product'
+                  $ref: '#/components/schemas/User'
     post:
+      summary: Create a new user.
       requestBody:
         content:
           application/json:
@@ -25,12 +32,15 @@ paths:
               properties:
                 name:
                   type: string
+                is_admin:
+                  type: boolean
               required: [name]
       responses:
         '204':
-          description: Successfully created a new product.
+          description: Successfully created a new user.
   /users/{id}:
     get:
+      summary: Get an information of the specified user.
       parameters:
         - name: id
           in: path
@@ -39,23 +49,22 @@ paths:
             type: integer
       responses:
         '200':
-          description: Successfully returns a product.
+          description: Successfully returns a user.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
+                $ref: '#/components/schemas/User'
         '404':
-          description: No product found
+          description: No user found
           content:
             application/json:
               schema:
                 properties:
                   error:
                     type: string
-                    enum: [no-product]
 components:
   schemas:
-    Product:
+    User:
       properties:
         id:
           type: integer
