@@ -43,7 +43,8 @@
            #:spec-document
            #:spec-version
            #:spec-router
-           #:load-from-file))
+           #:load-from-file
+           #:reload))
 (in-package #:apispec/file-loader)
 
 (defun open-yaml-file (file)
@@ -278,6 +279,7 @@
                         (make-from-hash 'path-item path-item)))))
 
 (defstruct spec
+  file
   (document nil :type hash-table)
   router)
 
@@ -286,5 +288,11 @@
 
 (defun load-from-file (file)
   (let ((document (open-yaml-file file)))
-    (make-spec :document document
+    (make-spec :file file
+               :document document
                :router (make-router (get-paths-object document)))))
+
+(defun reload (spec)
+  (let ((document (open-yaml-file (spec-file spec))))
+    (setf (spec-document spec) document
+          (spec-router spec) (make-router (get-paths-object document)))))
