@@ -176,13 +176,19 @@
             if prop
               collect (cons key
                             (and field-value
-                                 (coerce-data field-value (property-type prop))))
+                                 (handler-case (coerce-data field-value (property-type prop))
+                                   (schema-coercion-failed (c)
+                                     (error 'schema-object-invalid-value
+                                            :key key
+                                            :value (schema-coercion-failed-value c)
+                                            :schema (schema-coercion-failed-schema c))))))
             else if (not *ignore-additional-properties*)
               collect (if additional-properties
                           (cons key
                                 (and field-value
                                      (coerce-data field-value additional-properties)))
-                          (error 'schema-coercion-failed
+                          (error 'schema-object-unpermmited-key
+                                 :key key
                                  :value value
                                  :schema schema
                                  :message (format nil "Unpermitted property: ~S" key))))
