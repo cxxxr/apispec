@@ -181,7 +181,12 @@
                                      (error 'schema-object-invalid-value
                                             :key key
                                             :value (schema-coercion-failed-value c)
-                                            :schema (schema-coercion-failed-schema c))))))
+                                            :schema (schema-coercion-failed-schema c)))
+                                   (schema-validation-failed (c)
+                                     (error 'schema-object-invalid-value
+                                            :key key
+                                            :value (schema-validation-failed-value c)
+                                            :schema (schema-validation-failed-schema c))))))
             else if (not *ignore-additional-properties*)
               collect (if additional-properties
                           (cons key
