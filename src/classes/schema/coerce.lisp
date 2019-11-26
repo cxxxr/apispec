@@ -192,7 +192,7 @@
                           (cons key
                                 (and field-value
                                      (coerce-data field-value additional-properties)))
-                          (error 'schema-object-unpermmited-key
+                          (error 'schema-object-unpermitted-key
                                  :key key
                                  :value value
                                  :schema schema

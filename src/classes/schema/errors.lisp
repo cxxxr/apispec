@@ -6,7 +6,7 @@
            #:schema-coercion-failed-value
            #:schema-coercion-failed-schema
            #:schema-object-error
-           #:schema-object-unpermmited-key
+           #:schema-object-unpermitted-key
            #:schema-object-invalid-value
            #:schema-validation-failed))
 (in-package #:apispec/classes/schema/errors)
@@ -44,7 +44,7 @@
    (schema :initarg :schema
            :reader schema-object-schema)))
 
-(define-condition schema-object-unpermmited-key (schema-object-error)
+(define-condition schema-object-unpermitted-key (schema-object-error)
   ())
 
 (define-condition schema-object-invalid-value (schema-object-error)

@@ -102,7 +102,7 @@
                               '(object
                                 (("name" string))
                                 :additional-properties nil))
-                 'schema-object-unpermmited-key))
+                 'schema-object-unpermitted-key))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object
