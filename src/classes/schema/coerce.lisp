@@ -166,44 +166,45 @@
            :value value
            :schema schema))
 
-  (let ((properties (object-properties schema)))
-    (nconc
-      (loop with additional-properties = (object-additional-properties schema)
-            for (key . field-value) in value
-            for prop = (find key properties
-                             :key #'property-name
-                             :test #'equal)
-            if prop
-              collect (cons key
-                            (and field-value
-                                 (handler-case (coerce-data field-value (property-type prop))
-                                   (schema-coercion-failed (c)
-                                     (error 'schema-object-invalid-value
-                                            :keys (list key)
-                                            :value (schema-coercion-failed-value c)
-                                            :schema (schema-coercion-failed-schema c)))
-                                   (schema-validation-failed (c)
-                                     (error 'schema-object-invalid-value
-                                            :keys (list key)
-                                            :value (schema-validation-failed-value c)
-                                            :schema (schema-validation-failed-schema c))))))
-            else if (not *ignore-additional-properties*)
-              collect (if additional-properties
-                          (cons key
-                                (and field-value
-                                     (coerce-data field-value additional-properties)))
-                          (error 'schema-object-unpermitted-key
-                                 :keys (list key)
-                                 :value value
-                                 :schema schema
-                                 :message (format nil "Unpermitted property: ~S" key))))
-      (loop for prop in properties
-            for type = (property-type prop)
-            when (and (schema-has-default-p type)
-                      (not (find (property-name prop)
-                                 value
-                                 :key #'car
-                                 :test #'equal)))
-            collect
-            (cons (property-name prop)
-                  (schema-default type))))))
+  (let ((invalid-keys '())
+        (properties (object-properties schema)))
+    (prog1
+        (nconc
+         (loop with additional-properties = (object-additional-properties schema)
+               for (key . field-value) in value
+               for prop = (find key properties
+                                :key #'property-name
+                                :test #'equal)
+               if prop
+               collect (cons key
+                             (and field-value
+                                  (handler-case (coerce-data field-value (property-type prop))
+                                    (schema-coercion-failed ()
+                                      (push key invalid-keys))
+                                    (schema-validation-failed ()
+                                      (push key invalid-keys)))))
+               else if (not *ignore-additional-properties*)
+               collect (if additional-properties
+                           (cons key
+                                 (and field-value
+                                      (coerce-data field-value additional-properties)))
+                           (error 'schema-object-unpermitted-key
+                                  :keys (list key)
+                                  :value value
+                                  :schema schema
+                                  :message (format nil "Unpermitted property: ~S" key))))
+         (loop for prop in properties
+               for type = (property-type prop)
+               when (and (schema-has-default-p type)
+                         (not (find (property-name prop)
+                                    value
+                                    :key #'car
+                                    :test #'equal)))
+               collect
+                  (cons (property-name prop)
+                        (schema-default type))))
+      (when invalid-keys
+        (error 'schema-object-invalid-value
+               :keys (nreverse invalid-keys)
+               :value value
+               :schema schema)))))

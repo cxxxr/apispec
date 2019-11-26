@@ -95,6 +95,14 @@
                                (("name" string))))
                 'schema-object-invalid-value
                 'apispec/classes/schema/errors::keys '("name")))
+  (ok (signals* (coerce-data '(("foo" . 1)
+                               ("bar" . "a"))
+                             '(object
+                               (("foo" string)
+                                ("bar" number)
+                                ("baz" number))))
+                'schema-object-invalid-value
+                'apispec/classes/schema/errors::keys '("foo" "bar")))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
