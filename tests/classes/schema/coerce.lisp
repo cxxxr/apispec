@@ -75,9 +75,10 @@
   (ok (equalp (coerce-data '(("name" . "fukamachi")) '(object
                                                        (("name" string))))
               '(("name" . "fukamachi"))))
-  (ok (signals (coerce-data '(("name" . 1)) '(object
-                                              (("name" string))))
-          'schema-coercion-failed))
+  (ok (signals (coerce-data '(("name" . 1))
+                            '(object
+                              (("name" string))))
+               'schema-object-invalid-value))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
@@ -86,7 +87,7 @@
                             '(object
                               (("name" string))
                               :required ("name")))
-          'schema-validation-failed))
+               'schema-validation-failed))
 
   (testing "additionalProperties"
     (ok (equal (coerce-data '(("name" . "fukamachi")
@@ -101,7 +102,7 @@
                               '(object
                                 (("name" string))
                                 :additional-properties nil))
-            'schema-coercion-failed))
+                 'schema-object-unpermmited-key))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object
