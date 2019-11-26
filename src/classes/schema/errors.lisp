@@ -37,8 +37,8 @@
                        message)))))
 
 (define-condition schema-object-error (schema-error)
-  ((key :initarg :key
-        :reader schema-object-error-key)
+  ((keys :initarg :keys
+         :reader schema-object-error-keys)
    (value :initarg :value
           :reader schema-object-value)
    (schema :initarg :schema

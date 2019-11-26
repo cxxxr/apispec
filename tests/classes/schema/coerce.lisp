@@ -69,16 +69,32 @@
   (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
               #(1 -2 3))))
 
+(defmacro signals* (form condition &rest slot-value-pairs)
+  (let ((c (gensym))
+        (condition-type (gensym)))
+    `(let ((,condition-type ,condition))
+       (typep (block nil
+                (handler-bind ((condition
+                                 (lambda (,c)
+                                   (when (and (typep ,c ,condition-type)
+                                              ,@(loop :for (slot-name value) :on slot-value-pairs :by #'cddr
+                                                      :collect `(equal (slot-value ,c ,slot-name) ,value)))
+                                     (return ,c)))))
+                  ,form
+                  nil))
+              ,condition-type))))
+
 (deftest coerce-object-tests
   (ok (equalp (coerce-data '(("name" . "fukamachi")) 'object)
               '(("name" . "fukamachi"))))
   (ok (equalp (coerce-data '(("name" . "fukamachi")) '(object
                                                        (("name" string))))
               '(("name" . "fukamachi"))))
-  (ok (signals (coerce-data '(("name" . 1))
-                            '(object
-                              (("name" string))))
-               'schema-object-invalid-value))
+  (ok (signals* (coerce-data '(("name" . 1))
+                             '(object
+                               (("name" string))))
+                'schema-object-invalid-value
+                'apispec/classes/schema/errors::keys '("name")))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
