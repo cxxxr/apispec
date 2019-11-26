@@ -50,7 +50,11 @@
 
            #:schema-error
            #:schema-coercion-failed
-           #:schema-validation-failed)
+           #:schema-validation-failed
+           #:schema-object-error
+           #:schema-object-error-missing-keys
+           #:schema-object-error-invalid-keys
+           #:schema-object-error-unpermitted-keys)
   (:mix-reexport #:apispec/classes/header
                  #:apispec/classes/encoding
                  #:apispec/classes/media-type
