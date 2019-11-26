@@ -121,12 +121,14 @@
                               :additional-properties t))
                '(("name" . "fukamachi")
                  ("created-at" . "2019-04-30"))))
-    (ok (signals (coerce-data '(("name" . "fukamachi")
-                                ("created-at" . "2019-04-30"))
-                              '(object
-                                (("name" string))
-                                :additional-properties nil))
-                 'schema-object-unpermitted-key))
+    (ok (signals* (coerce-data '(("name" . "fukamachi")
+                                 ("created-at" . "2019-04-30")
+                                 ("updated-at" . "2019-05-01"))
+                               '(object
+                                 (("name" string))
+                                 :additional-properties nil))
+                  'schema-object-unpermitted-key
+                  'apispec/classes/schema/errors::keys '("created-at" "updated-at")))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object
