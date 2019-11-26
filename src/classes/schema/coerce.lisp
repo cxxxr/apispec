@@ -179,12 +179,12 @@
                                  (handler-case (coerce-data field-value (property-type prop))
                                    (schema-coercion-failed (c)
                                      (error 'schema-object-invalid-value
-                                            :key key
+                                            :keys (list key)
                                             :value (schema-coercion-failed-value c)
                                             :schema (schema-coercion-failed-schema c)))
                                    (schema-validation-failed (c)
                                      (error 'schema-object-invalid-value
-                                            :key key
+                                            :keys (list key)
                                             :value (schema-validation-failed-value c)
                                             :schema (schema-validation-failed-schema c))))))
             else if (not *ignore-additional-properties*)
@@ -193,7 +193,7 @@
                                 (and field-value
                                      (coerce-data field-value additional-properties)))
                           (error 'schema-object-unpermitted-key
-                                 :key key
+                                 :keys (list key)
                                  :value value
                                  :schema schema
                                  :message (format nil "Unpermitted property: ~S" key))))
