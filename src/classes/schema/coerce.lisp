@@ -200,13 +200,16 @@
                collect
                   (cons (property-name prop)
                         (schema-default type))))
-      (when invalid-keys
-        (error 'schema-object-invalid-value
-               :keys (nreverse invalid-keys)
-               :value value
-               :schema schema))
-      (when unpermitted-keys
-        (error 'schema-object-unpermitted-key
-               :keys (nreverse unpermitted-keys)
-               :value value
-               :schema schema)))))
+      (let ((missing-keys
+              (loop for key in (object-required schema)
+                    unless (find key value :key #'car :test #'equal)
+                    collect key)))
+        (when (or invalid-keys
+                  missing-keys
+                  unpermitted-keys)
+          (error 'schema-object-error
+                 :invalid-keys (nreverse invalid-keys)
+                 :missing-keys missing-keys
+                 :unpermitted-keys (nreverse unpermitted-keys)
+                 :value value
+                 :schema schema))))))

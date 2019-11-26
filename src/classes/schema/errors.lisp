@@ -6,11 +6,11 @@
            #:schema-coercion-failed-value
            #:schema-coercion-failed-schema
            #:schema-object-error
-           #:schema-object-error-keys
+           #:schema-object-error-missing-keys
+           #:schema-object-error-invalid-keys
+           #:schema-object-error-unpermitted-keys
            #:schema-object-error-value
            #:schema-object-error-schema
-           #:schema-object-unpermitted-key
-           #:schema-object-invalid-value
            #:schema-validation-failed))
 (in-package #:apispec/classes/schema/errors)
 
@@ -40,15 +40,13 @@
                        message)))))
 
 (define-condition schema-object-error (schema-error)
-  ((keys :initarg :keys
-         :reader schema-object-error-keys)
+  ((missing-keys :initarg :missing-keys
+                 :reader schema-object-error-missing-keys)
+   (invalid-keys :initarg :invalid-keys
+                 :reader schema-object-error-invalid-keys)
+   (unpermitted-keys :initarg :unpermitted-keys
+                     :reader schema-object-error-unpermitted-keys)
    (value :initarg :value
           :reader schema-object-value)
    (schema :initarg :schema
            :reader schema-object-schema)))
-
-(define-condition schema-object-unpermitted-key (schema-object-error)
-  ())
-
-(define-condition schema-object-invalid-value (schema-object-error)
-  ())
