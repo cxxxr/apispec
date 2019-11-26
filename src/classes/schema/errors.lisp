@@ -5,7 +5,7 @@
            #:schema-coercion-failed
            #:schema-coercion-failed-value
            #:schema-coercion-failed-schema
-           #:schema-object-coercion-failed
+           #:schema-object-error
            #:schema-object-unpermmited-key
            #:schema-object-invalid-value
            #:schema-validation-failed))
@@ -22,19 +22,11 @@
                        value
                        schema)))))
 
-(define-condition schema-object-coercion-failed (schema-coercion-failed)
-  ((key :initarg :key
-        :reader schema-object-coercion-failed-key)))
-
-(define-condition schema-object-unpermmited-key (schema-object-coercion-failed)
-  ())
-
-(define-condition schema-object-invalid-value (schema-object-coercion-failed)
-  ())
-
 (define-condition schema-validation-failed (schema-error validation-failed)
-  ((value :initarg :value)
-   (schema :initarg :schema)
+  ((value :initarg :value
+          :reader schema-validation-failed-value)
+   (schema :initarg :schema
+           :reader schema-validation-failed-schema)
    (message :initarg :message
             :initform nil))
   (:report (lambda (condition stream)
@@ -43,3 +35,17 @@
                        value
                        schema
                        message)))))
+
+(define-condition schema-object-error (schema-error)
+  ((key :initarg :key
+        :reader schema-object-error-key)
+   (value :initarg :value
+          :reader schema-object-value)
+   (schema :initarg :schema
+           :reader schema-object-schema)))
+
+(define-condition schema-object-unpermmited-key (schema-object-error)
+  ())
+
+(define-condition schema-object-invalid-value (schema-object-error)
+  ())
