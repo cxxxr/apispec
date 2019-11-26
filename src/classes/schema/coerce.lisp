@@ -165,8 +165,8 @@
     (error 'schema-coercion-failed
            :value value
            :schema schema))
-
   (let ((invalid-keys '())
+        (unpermitted-keys '())
         (properties (object-properties schema)))
     (prog1
         (nconc
@@ -183,16 +183,13 @@
                                       (push key invalid-keys))
                                     (schema-validation-failed ()
                                       (push key invalid-keys)))))
+               else if (and (not *ignore-additional-properties*)
+                            additional-properties)
+               collect (cons key
+                             (and field-value
+                                  (coerce-data field-value additional-properties)))
                else if (not *ignore-additional-properties*)
-               collect (if additional-properties
-                           (cons key
-                                 (and field-value
-                                      (coerce-data field-value additional-properties)))
-                           (error 'schema-object-unpermitted-key
-                                  :keys (list key)
-                                  :value value
-                                  :schema schema
-                                  :message (format nil "Unpermitted property: ~S" key))))
+               do (push key unpermitted-keys))
          (loop for prop in properties
                for type = (property-type prop)
                when (and (schema-has-default-p type)
@@ -206,5 +203,10 @@
       (when invalid-keys
         (error 'schema-object-invalid-value
                :keys (nreverse invalid-keys)
+               :value value
+               :schema schema))
+      (when unpermitted-keys
+        (error 'schema-object-unpermitted-key
+               :keys (nreverse unpermitted-keys)
                :value value
                :schema schema)))))
