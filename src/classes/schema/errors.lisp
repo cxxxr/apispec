@@ -6,6 +6,9 @@
            #:schema-coercion-failed-value
            #:schema-coercion-failed-schema
            #:schema-object-error
+           #:schema-object-error-keys
+           #:schema-object-error-value
+           #:schema-object-error-schema
            #:schema-object-unpermitted-key
            #:schema-object-invalid-value
            #:schema-validation-failed))
