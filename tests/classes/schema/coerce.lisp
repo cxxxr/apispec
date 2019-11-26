@@ -93,25 +93,26 @@
   (ok (signals* (coerce-data '(("name" . 1))
                              '(object
                                (("name" string))))
-                'schema-object-invalid-value
-                'apispec/classes/schema/errors::keys '("name")))
+                'schema-object-error
+                'apispec/classes/schema/errors::invalid-keys '("name")))
   (ok (signals* (coerce-data '(("foo" . 1)
                                ("bar" . "a"))
                              '(object
                                (("foo" string)
                                 ("bar" number)
                                 ("baz" number))))
-                'schema-object-invalid-value
-                'apispec/classes/schema/errors::keys '("foo" "bar")))
+                'schema-object-error
+                'apispec/classes/schema/errors::invalid-keys '("foo" "bar")))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
               '(("hi" . "all"))))
-  (ok (signals (coerce-data '(("hi" . "all"))
-                            '(object
-                              (("name" string))
-                              :required ("name")))
-               'schema-validation-failed))
+  (ok (signals* (coerce-data '(("hi" . "all"))
+                             '(object
+                               (("name" string))
+                               :required ("name")))
+                'schema-object-error
+                'apispec/classes/schema/errors::missing-keys '("name")))
 
   (testing "additionalProperties"
     (ok (equal (coerce-data '(("name" . "fukamachi")
@@ -127,8 +128,8 @@
                                '(object
                                  (("name" string))
                                  :additional-properties nil))
-                  'schema-object-unpermitted-key
-                  'apispec/classes/schema/errors::keys '("created-at" "updated-at")))
+                  'schema-object-error
+                  'apispec/classes/schema/errors::unpermitted-keys '("created-at" "updated-at")))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object
