@@ -13,4 +13,4 @@
                               '(object
                                  (("name" string))
                                  :required ("name")))
-               'schema-validation-failed)))
+               'schema-object-error)))
