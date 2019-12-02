@@ -37,6 +37,7 @@
    (:module "body"
     :components
     ((:file "encode")))
-   (:module "router")
+   (:file "router")
+   (:file "file-loader")
    (:file "utils"))
   :perform (test-op (o c) (symbol-call :rove '#:run c :style :dot)))
