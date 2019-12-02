@@ -83,10 +83,12 @@
       (make-from-hash class (get-component-hash (gethash "$ref" hash)))
       (let ((type (gethash "type" hash))
             (format (gethash "format" hash))
-            (common-args (list :enum (gethash "enum" hash)
-                               :default (gethash "default" hash)
-                               :nullable (gethash "nullable" hash)
-                               :deprecated (gethash "deprecated" hash))))
+            (common-args
+              (append (and (existsp "default" hash)
+                           (list :default (gethash "default" hash)))
+                      (list :enum (gethash "enum" hash)
+                            :nullable (gethash "nullable" hash)
+                            :deprecated (gethash "deprecated" hash)))))
         (cond
           ((or (string= type "object")
                (and (null type)
