@@ -213,7 +213,7 @@
         (error 'schema-object-error
                :invalid-keys (nreverse invalid-keys)
                :missing-keys missing-keys
-               :unpermitte-dkeys (nreverse unpermitted-keys)
+               :unpermitted-keys (nreverse unpermitted-keys)
                :value value
                :schema schema))
       (unless (and (or (not (object-min-properties schema))
