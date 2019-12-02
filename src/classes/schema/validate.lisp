@@ -28,7 +28,9 @@
              :value value
              :schema schema
              :message "Not nullable"))
-    (call-next-method))
+    (if (typep schema 'object)
+        (call-next-method)
+        t))
   (:method (value (schema schema))
     t)
   (:method :around (value (schema schema))
