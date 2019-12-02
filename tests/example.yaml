@@ -1,0 +1,14 @@
+openapi: '3.0.1'
+paths:
+  /foo:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                foo:
+                  type: string
+      responses:
+        '204':
+          description: Successfully created a new user.
