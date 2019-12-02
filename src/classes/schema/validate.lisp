@@ -188,46 +188,43 @@
   (unless (object-properties schema)
     (return-from validate-data value))
 
-  (loop for (key . field-value) in value
-        for prop = (find key (object-properties schema)
-                         :key #'property-name
-                         :test #'equal)
-        do (if prop
-               (handler-case (validate-data field-value (property-type prop))
-                 (schema-validation-failed (e)
-                   (error 'schema-validation-failed
-                          :value value
-                          :schema schema
-                          :message (format nil "Validation failed at ~S:~%  ~S"
-                                           key
-                                           (slot-value e 'message)))))
-               (let ((additional-properties (object-additional-properties schema)))
-                 (etypecase additional-properties
-                   (null (error 'schema-validation-failed
-                                :value value
-                                :schema schema
-                                :message (format nil "Undefined property: ~S" key)))
-                   ((eql t))
-                   (schema (validate-data field-value additional-properties))))))
-  (loop for key in (object-required schema)
-        unless (find key value :key #'car :test #'equal)
-          collect key into missing-keys
-        finally
-           (when missing-keys
-             (error 'schema-validation-failed
-                    :value value
-                    :schema schema
-                    :message (format nil "Missing required keys: ~S" missing-keys))))
-  (unless (and (or (not (object-min-properties schema))
-                   (nthcdr (object-min-properties schema) value))
-               (or (not (object-max-properties schema))
-                   (nthcdr (object-max-properties schema) value)))
-    (error 'schema-validation-failed
-           :value value
-           :schema schema
-           :message
-           (format nil "The number of properties has to be in the range of~@[ ~A <=~] (length properties)~@[ <= ~A~]"
-                   (object-min-properties schema)
-                   (object-max-properties schema))))
-
-  t)
+  (let ((invalid-keys '())
+        (unpermitted-keys '()))
+    (loop for (key . field-value) in value
+          for prop = (find key (object-properties schema)
+                           :key #'property-name
+                           :test #'equal)
+          do (if prop
+                 (handler-case (validate-data field-value (property-type prop))
+                   (schema-validation-failed ()
+                     (push key invalid-keys)))
+                 (let ((additional-properties (object-additional-properties schema)))
+                   (etypecase additional-properties
+                     (null (push key unpermitted-keys))
+                     ((eql t))
+                     (schema (validate-data field-value additional-properties))))))
+    (let ((missing-keys
+            (loop for key in (object-required schema)
+                  unless (find key value :key #'car :test #'equal)
+                  collect key)))
+      (when (or invalid-keys
+                missing-keys
+                unpermitted-keys)
+        (error 'schema-object-error
+               :invalid-keys (nreverse invalid-keys)
+               :missing-keys missing-keys
+               :unpermitte-dkeys (nreverse unpermitted-keys)
+               :value value
+               :schema schema))
+      (unless (and (or (not (object-min-properties schema))
+                       (nthcdr (object-min-properties schema) value))
+                   (or (not (object-max-properties schema))
+                       (nthcdr (object-max-properties schema) value)))
+        (error 'schema-validation-failed
+               :value value
+               :schema schema
+               :message
+               (format nil "The number of properties has to be in the range of~@[ ~A <=~] (length properties)~@[ <= ~A~]"
+                       (object-min-properties schema)
+                       (object-max-properties schema))))
+      t)))
