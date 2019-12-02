@@ -161,9 +161,11 @@
     (let ((schema (make-instance 'composition-schema
                                  :one-of
                                  (list (schema (object (("bark" boolean)
-                                                        ("breed" (string :enum '("Dingo" "Husky" "Retriever" "Shepherd"))))))
+                                                        ("breed" (string :enum '("Dingo" "Husky" "Retriever" "Shepherd"))))
+                                                       :required '("bark" "breed")))
                                        (schema (object (("hunts" boolean)
-                                                        ("age" integer))))))))
+                                                        ("age" integer))
+                                                       :required '("hunts" "age")))))))
       (ok (equal (coerce-data '(("bark" . t)
                                 ("breed" . "Dingo"))
                               schema)
