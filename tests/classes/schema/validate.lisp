@@ -11,6 +11,9 @@
                'schema-validation-failed))
   (ok (signals (validate-data '(("hi" . "all"))
                               '(object
-                                 (("name" string))
-                                 :required ("name")))
-               'schema-object-error)))
+                                (("name" string))
+                                :required ("name")))
+               'schema-object-error))
+  (ok (validate-data '()
+                     '(object
+                       (("name" string))))))

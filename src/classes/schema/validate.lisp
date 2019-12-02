@@ -22,12 +22,13 @@
                      (apply #'make-schema type args))))
   (:method :around ((value null) (schema schema))
     (unless (or (typep schema 'boolean)  ;; BOOLEAN can be NIL
-                (schema-nullable-p schema))
+                (schema-nullable-p schema)
+                (typep schema 'object))
       (error 'schema-validation-failed
              :value value
              :schema schema
              :message "Not nullable"))
-    t)
+    (call-next-method))
   (:method (value (schema schema))
     t)
   (:method :around (value (schema schema))
