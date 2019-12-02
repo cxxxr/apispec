@@ -259,18 +259,12 @@
 
 (defvar *doc*)
 
-(defvar *component-hash-cache*
-  (make-hash-table :test 'equal))
-
 (defun get-component-hash (key &optional (hash *doc*))
-  (or (gethash key *component-hash-cache*)
-      (when (ppcre:scan "^#/" key)
-        (setf (gethash key *component-hash-cache*)
-              (reduce (lambda (current path)
-                        (or (gethash path current)
-                            (error "No component: ~S" key)))
-                      (rest (ppcre:split "/" key))
-                      :initial-value hash)))))
+  (reduce (lambda (current path)
+            (or (gethash path current)
+                (error "No component: ~S" key)))
+          (rest (ppcre:split "/" key))
+          :initial-value hash))
 
 (defun get-paths-object (parsed-hash)
   (let ((*doc* parsed-hash))
