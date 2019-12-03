@@ -197,7 +197,8 @@
    (pattern :type (or cl:string null)
             :initarg :pattern
             :initform nil
-            :reader string-pattern)))
+            :reader string-pattern)
+   (format :initarg :format)))
 
 (defmethod initialize-instance ((object string) &rest initargs
                                 &key max-length min-length &allow-other-keys)

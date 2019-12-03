@@ -13,7 +13,8 @@
            #:declaim-safety
            #:undeclaim-safety
            #:slurp-stream
-           #:detect-charset))
+           #:detect-charset
+           #:email-format-p))
 (in-package #:apispec/utils)
 
 (defpackage #:apispec/utils/lambda-predicate)
@@ -112,3 +113,8 @@
       (t (or (find charset (babel:list-character-encodings)
                    :test #'string-equal)
              babel:*default-character-encoding*)))))
+
+(defun email-format-p (string)
+  (when (and (<= (length string) 256)
+             (ppcre:scan "\\A[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\\z" string))
+    t))

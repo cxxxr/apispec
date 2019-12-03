@@ -16,4 +16,9 @@
                'schema-object-error))
   (ok (validate-data '()
                      '(object
-                       (("name" string))))))
+                       (("name" string)))))
+  (ok (signals (validate-data "foo"
+                              (schema (string :format "email")))
+               'schema-validation-failed))
+  (ok (validate-data "foo@gmail.com"
+                     (schema (string :format "email")))))

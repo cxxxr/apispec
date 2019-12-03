@@ -5,7 +5,8 @@
   (:import-from #:apispec/classes/schema/core
                 #:parse-schema-definition)
   (:import-from #:apispec/utils
-                #:association-list)
+                #:association-list
+                #:email-format-p)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:schema-validation-failed
@@ -117,6 +118,11 @@
            :message (format nil "Not match to ~S"
                             (string-pattern schema))))
 
+  (unless (or (not (equal "email" (schema-format schema)))
+              (email-format-p value))
+    (error 'schema-validation-failed
+           :value value
+           :schema schema))
   t)
 
 (defmethod validate-data (value (schema binary))
