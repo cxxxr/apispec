@@ -73,7 +73,9 @@
   (ok (signals (coerce-data '(1 2 3) '(array 10))
           'schema-validation-failed))
   (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
-              #(1 -2 3))))
+              #(1 -2 3)))
+  (ok (signals (coerce-data 10 (schema (array :enum '("foo" "bar"))))
+               'schema-coercion-failed)))
 
 (defmacro signals* (form condition &rest slot-value-pairs)
   (let ((c (gensym))

@@ -148,12 +148,18 @@
     (call-next-method)))
 
 (defmethod coerce-data (value (schema array))
-  (if (array-items schema)
-      (map 'vector
-           (lambda (item)
-             (coerce-data item (array-items schema)))
-           value)
-      (coerce value 'vector)))
+  (let ((value
+          (handler-case
+              (coerce value 'vector)
+            (type-error ()
+              (error 'schema-coercion-failed :valeu value :schema schema)))))
+    (cond ((array-items schema)
+           (map 'vector
+                (lambda (item)
+                  (coerce-data item (array-items schema)))
+                value))
+          (t
+           value))))
 
 
 ;;
