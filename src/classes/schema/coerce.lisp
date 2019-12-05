@@ -119,7 +119,10 @@
 
 (defmethod coerce-data ((value cl:string) (schema date-time))
   (check-type value cl:string)
-  (local-time:parse-rfc3339-timestring value))
+  (handler-case
+      (local-time:parse-rfc3339-timestring value)
+    (local-time::invalid-timestring ()
+      (error 'schema-coercion-failed :value value :schema schema))))
 
 (defvar *coerce-integer-string-to-boolean* nil)
 

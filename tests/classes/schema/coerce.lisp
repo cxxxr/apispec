@@ -59,6 +59,10 @@
   (ok (eq (coerce-data t 'boolean) t))
   (ok (eq (coerce-data nil 'boolean) nil)))
 
+(deftest coerce-date-time-tests
+  (signals (coerce-data "foo" 'date-time)
+           'schema-coercion-failed))
+
 (deftest coerce-array-tests
   (ok (equalp (coerce-data '(1 2 3) 'array)
               #(1 2 3)))
