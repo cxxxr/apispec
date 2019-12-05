@@ -119,6 +119,12 @@
            :message (format nil "Not match to ~S"
                             (string-pattern schema))))
 
+  (when (schema-enum schema)
+    (unless (member value (schema-enum schema) :test #'string=)
+      (error 'schema-validation-failed
+             :value value
+             :schema schema)))
+
   (unless (or (not (equal "email" (schema-format schema)))
               (email-format-p value))
     (error 'schema-validation-failed
