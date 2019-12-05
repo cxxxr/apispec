@@ -120,7 +120,7 @@
                             (string-pattern schema))))
 
   (when (schema-enum schema)
-    (unless (member value (schema-enum schema) :test #'string=)
+    (unless (find value (schema-enum schema) :test #'string=)
       (error 'schema-validation-failed
              :value value
              :schema schema)))
