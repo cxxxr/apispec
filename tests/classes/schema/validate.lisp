@@ -26,4 +26,9 @@
                      (schema (string :format "uuid"))))
   (signals (validate-data "foo"
                           (schema (string :format "uuid")))
-           'schema-validation-failed))
+           'schema-validation-failed)
+  (ok (validate-data #(1 2 3)
+                     (schema (array :items 'integer))))
+  (ok (signals (validate-data #(1 2 #\a)
+                              (schema (array :items 'integer)))
+               'schema-validation-failed)))

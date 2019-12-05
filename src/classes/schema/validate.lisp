@@ -188,7 +188,15 @@
       (error 'schema-validation-failed
              :value value
              :schema schema
-             :message "The items are not unique"))))
+             :message "The items are not unique")))
+
+  (when (array-items schema)
+    (map nil
+         (lambda (item)
+           (validate-data item (array-items schema)))
+         value))
+
+  t)
 
 
 ;;
