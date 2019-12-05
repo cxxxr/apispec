@@ -21,4 +21,9 @@
                               (schema (string :format "email")))
                'schema-validation-failed))
   (ok (validate-data "foo@gmail.com"
-                     (schema (string :format "email")))))
+                     (schema (string :format "email"))))
+  (ok (validate-data "d9d29401-3feb-48b2-ac79-54cee011717d"
+                     (schema (string :format "uuid"))))
+  (signals (validate-data "foo"
+                          (schema (string :format "uuid")))
+           'schema-validation-failed))

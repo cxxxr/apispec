@@ -6,7 +6,8 @@
                 #:parse-schema-definition)
   (:import-from #:apispec/utils
                 #:association-list
-                #:email-format-p)
+                #:email-format-p
+                #:uuid-format-p)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:schema-validation-failed
@@ -120,6 +121,12 @@
 
   (unless (or (not (equal "email" (schema-format schema)))
               (email-format-p value))
+    (error 'schema-validation-failed
+           :value value
+           :schema schema))
+
+  (unless (or (not (equal "uuid" (schema-format schema)))
+              (uuid-format-p value))
     (error 'schema-validation-failed
            :value value
            :schema schema))

@@ -14,7 +14,8 @@
            #:undeclaim-safety
            #:slurp-stream
            #:detect-charset
-           #:email-format-p))
+           #:email-format-p
+           #:uuid-format-p))
 (in-package #:apispec/utils)
 
 (defpackage #:apispec/utils/lambda-predicate)
@@ -117,4 +118,9 @@
 (defun email-format-p (string)
   (when (and (<= (length string) 256)
              (ppcre:scan "\\A[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\\z" string))
+    t))
+
+(defun uuid-format-p (string)
+  (when (ppcre:scan "\\A[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\\z"
+                    string)
     t))
