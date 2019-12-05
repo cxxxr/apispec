@@ -127,7 +127,7 @@
 (defvar *coerce-integer-string-to-boolean* nil)
 
 (defmethod coerce-data (value (schema boolean))
-  (etypecase value
+  (typecase value
     (cl:string
       (unless *coerce-integer-string-to-boolean*
         (error 'schema-coercion-failed :value value :schema schema))
@@ -135,7 +135,9 @@
         ((equal value "1") t)
         ((equal value "0") nil)
         (t (error 'schema-coercion-failed :value value :schema schema))))
-    (cl:boolean value)))
+    (cl:boolean value)
+    (otherwise
+     (error 'schema-coercion-failed :value value :schema schema))))
 
 
 ;;
