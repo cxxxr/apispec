@@ -50,12 +50,6 @@
            :schema schema
            :message "Not a number"))
 
-  (when (and (equal "decimal" (schema-format schema))
-             (not (integerp value)))
-    (error 'schema-validation-failed
-           :value value
-           :schema schema))
-
   (unless (and (or (not (number-minimum schema))
                    (funcall (if (number-exclusive-minimum-p schema)
                                 #'<

@@ -21,9 +21,7 @@
   (ok (eql (coerce-data 1 'float) 1.0))
   (ok (eql (coerce-data "1" 'integer) 1))
   (ok (eql (coerce-data "1.2" 'float) 1.2))
-  (ok (eql (coerce-data "1.2" 'double) '1.2d0))
-  (ok (signals (coerce-data "1.2" (schema (number :format "decimal")))
-               'schema-validation-failed)))
+  (ok (eql (coerce-data "1.2" 'double) '1.2d0)))
 
 (deftest coerce-string-tests
   (ok (equal (coerce-data "a" 'string) "a"))
