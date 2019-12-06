@@ -89,6 +89,7 @@
          :initform t
          :reader schema-type)
    (format :type (or cl:string null)
+           :initarg :format
            :initform nil
            :reader schema-format)
    (enum :type proper-list
