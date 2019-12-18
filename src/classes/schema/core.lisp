@@ -8,7 +8,7 @@
            #:byte
            #:boolean
            #:array)
-  (:import-from #:trivia
+  (:import-from #:optima
                 #:match
                 #:ematch
                 #:guard)
