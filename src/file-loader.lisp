@@ -273,9 +273,17 @@
           collect (cons path-rule
                         (make-from-hash 'path-item path-item)))))
 
+(defun get-schemas-object (parsed-hash)
+  (let ((*doc* parsed-hash))
+    (loop for schema-name being each hash-key of
+             (gethash "schemas" (gethash "components" parsed-hash))
+          using (hash-value schema-value)
+          collect (cons schema-name (make-from-hash 'schema schema-value)))))
+
 (defstruct spec
   (document nil :type hash-table)
-  router)
+  router
+  schemas)
 
 (defun spec-version (spec)
   (values (gethash "openapi" (spec-document spec))))
@@ -283,4 +291,5 @@
 (defun load-from-file (file)
   (let ((document (open-yaml-file file)))
     (make-spec :document document
-               :router (make-router (get-paths-object document)))))
+               :router (make-router (get-paths-object document))
+               :schemas (get-schemas-object document))))
