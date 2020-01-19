@@ -45,6 +45,7 @@
            #:spec-document
            #:spec-version
            #:spec-router
+           #:spec-schemas
            #:load-from-file))
 (in-package #:apispec/file-loader)
 
