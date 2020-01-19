@@ -37,6 +37,8 @@
                           #:array)
   (:import-from #:apispec/router
                 #:make-router)
+  (:import-from #:alexandria
+                #:when-let*)
   (:import-from #:cl-yaml
                 #:parse)
   (:export #:spec
@@ -275,10 +277,11 @@
 
 (defun get-schemas-object (parsed-hash)
   (let ((*doc* parsed-hash))
-    (loop for schema-name being each hash-key of
-             (gethash "schemas" (gethash "components" parsed-hash))
-          using (hash-value schema-value)
-          collect (cons schema-name (make-from-hash 'schema schema-value)))))
+    (when-let* ((components (gethash "components" parsed-hash))
+                (schemas (gethash "schemas" components)))
+      (loop for schema-name being each hash-key of schemas
+            using (hash-value schema-value)
+            collect (cons schema-name (make-from-hash 'schema schema-value))))))
 
 (defstruct spec
   (document nil :type hash-table)
