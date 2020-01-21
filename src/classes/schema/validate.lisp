@@ -148,22 +148,45 @@
 
   t)
 
+(defun ensure-data-1 (value ensure-fn)
+  (typecase value
+    (cl:string
+     (handler-case (funcall ensure-fn value)
+       (error ()
+         nil)))
+    (local-time:timestamp
+     value)
+    (otherwise
+     nil)))
+
+(defun ensure-date (value)
+  (ensure-data-1 value
+                 (lambda (value)
+                   ;; https://tools.ietf.org/html/rfc3339#section-5.6 full-date
+                   (and (ppcre:scan "^\\d{4}-\\d{2}-\\d{2}$" value)
+                        (local-time:parse-rfc3339-timestring value :allow-missing-time-part t)))))
+
+(defun ensure-date-time (value)
+  (ensure-data-1 value
+                 (lambda (value)
+                   ;; https://tools.ietf.org/html/rfc3339#section-5.6 date-time
+                   (and (ppcre:scan "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})" value)
+                        (local-time:parse-rfc3339-timestring value)))))
+
 (defmethod validate-data (value (schema date))
-  (unless (typep value 'local-time:timestamp)
+  (unless (ensure-date value)
     (error 'schema-validation-failed
            :value value
            :schema schema
            :message "Not a LOCAL-TIME:TIMESTAMP"))
-
   t)
 
 (defmethod validate-data (value (schema date-time))
-  (unless (typep value 'local-time:timestamp)
+  (unless (ensure-date-time value)
     (error 'schema-validation-failed
            :value value
            :schema schema
            :message "Not a LOCAL-TIME:TIMESTAMP"))
-
   t)
 
 
