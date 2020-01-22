@@ -36,4 +36,19 @@
     (dolist (string enum)
       (ok (apispec:coerce-data string (schema (string :enum enum)))))
     (ok (signals (apispec:coerce-data "hoge" (schema (string :enum enum)))
-                 'schema-validation-failed))))
+                 'schema-validation-failed)))
+  (ok (validate-data "2020-01-21T23:03:22.503288Z"
+                     (schema (date-time))))
+  (ok (signals (validate-data "2020-01-21T23:03:22.503a"
+                              (schema (date-time)))
+               'schema-validation-failed))
+  (ok (validate-data "2020-01-21T23:03:22Z"
+                     (schema (date-time))))
+  (ok (signals (validate-data "2020-01-21T23:03:22"
+                              (schema (date-time)))
+               'schema-validation-failed))
+  (ok (validate-data "2020-01-21"
+                     (schema (date))))
+  (ok (signals (validate-data "2020-01-21T23:03:22.503288Z"
+                              (schema (date)))
+               'schema-validation-failed)))
