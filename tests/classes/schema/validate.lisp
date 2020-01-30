@@ -77,7 +77,7 @@
                                     ("age" . 3))
                                   schema)
                    'schema-validation-failed))))
-  (testing "anyuOf"
+  (testing "anyOf"
     (let ((schema (make-instance 'composition-schema
                                  :any-of
                                  (list (schema (object (("age" integer) ("nickname" string))
