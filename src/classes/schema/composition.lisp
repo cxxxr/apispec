@@ -13,7 +13,10 @@
   (:import-from #:apispec/classes/schema/errors
                 #:schema-error
                 #:schema-coercion-failed
-                #:schema-validation-failed)
+                #:schema-validation-failed
+                #:schema-oneof-error
+                #:schema-anyof-error
+                #:schema-allof-error)
   (:export #:composition-schema
            #:schema-one-of
            #:schema-any-of
@@ -68,19 +71,19 @@
 (defmethod process-one-of ((process-type (eql 'coerce-data)) value schema)
   (let ((results (map-schemas #'coerce-data value (schema-one-of schema))))
     (unless (= 1 (count t results :key #'cdr))
-      (error 'schema-coercion-failed
+      (error 'schema-oneof-error
              :value value
              :schema schema
-             :message "Multiple schemas are possible for oneOf composition schema"))
+             :subschemas (schema-one-of schema)))
     (car (find-if #'cdr results))))
 
 (defmethod process-any-of ((process-type (eql 'coerce-data)) value schema)
   (let ((results (map-schemas #'coerce-data value (schema-any-of schema))))
     (when (= 0 (count t results :key #'cdr))
-      (error 'schema-coercion-failed
+      (error 'schema-anyof-error
              :value value
              :schema schema
-             :message "Every schemas aren't possible for anyOf composition schema"))
+             :subschemas (schema-any-of schema)))
     (apply #'append (mapcar #'car results))))
 
 (defmethod process-all-of ((process-type (eql 'coerce-data)) value schema)
@@ -104,19 +107,19 @@
 (defmethod process-one-of ((process-type (eql 'validate-data)) value schema)
   (let ((results (map-schemas #'validate-data value (schema-one-of schema))))
     (unless (= 1 (count t results :key #'cdr))
-      (error 'schema-validation-failed
+      (error 'schema-oneof-error
              :value value
              :schema schema
-             :message "Multiple schemas are possible for oneOf composition schema"))
+             :subschemas (schema-one-of schema)))
     t))
 
 (defmethod process-any-of ((process-type (eql 'validate-data)) value schema)
   (let ((results (map-schemas #'validate-data value (schema-any-of schema))))
     (when (= 0 (count t results :key #'cdr))
-      (error 'schema-validation-failed
+      (error 'schema-anyof-error
              :value value
              :schema schema
-             :message "Every schemas aren't possible for anyOf composition schema"))
+             :subschemas (schema-any-of schema)))
     t))
 
 (defmethod process-all-of ((process-type (eql 'validate-data)) value schema)

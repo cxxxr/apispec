@@ -11,7 +11,10 @@
            #:schema-object-error-unpermitted-keys
            #:schema-object-error-value
            #:schema-object-error-schema
-           #:schema-validation-failed))
+           #:schema-validation-failed
+           #:schema-oneof-error
+           #:schema-anyof-error
+           #:schema-allof-error))
 (in-package #:apispec/classes/schema/errors)
 
 (define-condition schema-error (apispec-error) ())
@@ -50,3 +53,29 @@
           :reader schema-object-value)
    (schema :initarg :schema
            :reader schema-object-schema)))
+
+(define-condition schema-multiple-error (schema-error)
+  ((subschemas
+    :initarg :subschemas
+    :reader schema-multiple-error-subschemas)))
+
+(define-condition schema-oneof-error (schema-multiple-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream
+                     "Multiple schemas are possible for oneOf composition schema: ~{~A~^ ~}"
+                     (schema-multiple-error-subschemas condition)))))
+
+(define-condition schema-anyof-error (schema-multiple-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream
+                     "Every schemas aren't possible for anyOf composition schema: ~{~A~^ ~}"
+                     (schema-multiple-error-subschemas condition)))))
+
+(define-condition schema-allof-error (schema-multiple-error)
+  ()
+  (:report (lambda (condition stream)
+             (format stream
+                     "Possible for negative schema"
+                     (schema-multiple-error-subschemas condition)))))
