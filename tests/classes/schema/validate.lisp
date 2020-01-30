@@ -3,7 +3,8 @@
         #:cl)
   (:use #:rove
         #:apispec/classes/schema/validate
-        #:apispec/classes/schema/errors))
+        #:apispec/classes/schema/errors
+        #:apispec/classes/schema/composition))
 (in-package #:apispec/tests/classes/schema/validate)
 
 (deftest validate-data-tests
@@ -52,3 +53,39 @@
   (ok (signals (validate-data "2020-01-21T23:03:22.503288Z"
                               (schema (date)))
                'schema-validation-failed)))
+
+(deftest composition-schema-tests
+  (testing "oneOf"
+    (let ((schema (make-instance 'composition-schema
+                                 :one-of
+                                 (list (schema (object (("bark" boolean)
+                                                        ("breed" (string :enum '("Dingo" "Husky" "Retriever" "Shepherd"))))
+                                                       :required '("bark" "breed")))
+                                       (schema (object (("hunts" boolean)
+                                                        ("age" integer))
+                                                       :required '("hunts" "age")))))))
+      (ok (validate-data '(("bark" . t)
+                           ("breed" . "Dingo"))
+                         schema))
+      (ok (signals (validate-data '(("bark" . t)
+                                    ("hunts" . t))
+                                  schema)
+                   'schema-validation-failed))
+      (ok (signals (validate-data '(("bark" . t)
+                                    ("hunts" . t)
+                                    ("breed" . "Husky")
+                                    ("age" . 3))
+                                  schema)
+                   'schema-validation-failed))))
+  (testing "anyOf"
+    (let ((schema (make-instance 'composition-schema
+                                 :any-of
+                                 (list (schema (object (("age" integer) ("nickname" string))
+                                                       :required '("age")))
+                                       (schema (object (("pet_type" (string :enum '("Cat" "Dog")))
+                                                        ("hunts" boolean))
+                                                       :required '("pet_type")))))))
+      (ok (validate-data '(("age" . 11)) schema))
+      (ok (validate-data '(("pet_type" . "Cat") ("hunts" . t)) schema))
+      (ok (signals (validate-data '("foo" . 0) schema)
+                   'schema-validation-failed)))))

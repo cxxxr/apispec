@@ -8,9 +8,12 @@
   (:import-from #:apispec/classes/schema/coerce
                 #:*ignore-additional-properties*
                 #:coerce-data)
+  (:import-from #:apispec/classes/schema/validate
+                #:validate-data)
   (:import-from #:apispec/classes/schema/errors
                 #:schema-error
-                #:schema-coercion-failed)
+                #:schema-coercion-failed
+                #:schema-validation-failed)
   (:export #:composition-schema
            #:schema-one-of
            #:schema-any-of
@@ -39,39 +42,54 @@
         :initarg :not
         :reader schema-not)))
 
+(defgeneric process-one-of (process-type value schema))
+(defgeneric process-any-of (process-type value schema))
+(defgeneric process-all-of (process-type value schema))
+
+(defun process-composition-schema (process-type value schema)
+  (cond
+    ((schema-one-of schema)
+     (process-one-of process-type value schema))
+    ((schema-any-of schema)
+     (process-any-of process-type value schema))
+    ((schema-all-of schema)
+     (process-all-of process-type value schema))))
+
+(defun map-schemas (fn value schemas)
+  (let ((*ignore-additional-properties* t))
+    (mapcar (lambda (subschema)
+              (handler-case
+                  (cons (funcall fn value subschema)
+                        t)
+                (schema-error ()
+                  (cons nil nil))))
+            schemas)))
+
+(defmethod process-one-of ((process-type (eql 'coerce-data)) value schema)
+  (let ((results (map-schemas #'coerce-data value (schema-one-of schema))))
+    (unless (= 1 (count t results :key #'cdr))
+      (error 'schema-coercion-failed
+             :value value
+             :schema schema
+             :message "Multiple schemas are possible for oneOf composition schema"))
+    (car (find-if #'cdr results))))
+
+(defmethod process-any-of ((process-type (eql 'coerce-data)) value schema)
+  (let ((results (map-schemas #'coerce-data value (schema-any-of schema))))
+    (when (= 0 (count t results :key #'cdr))
+      (error 'schema-coercion-failed
+             :value value
+             :schema schema
+             :message "Every schemas aren't possible for anyOf composition schema"))
+    (apply #'append (mapcar #'car results))))
+
+(defmethod process-all-of ((process-type (eql 'coerce-data)) value schema)
+  (mapcan (lambda (subschema)
+            (coerce-data value subschema))
+          (schema-all-of schema)))
+
 (defmethod coerce-data (value (schema composition-schema))
-  (flet ((map-schemas (schemas)
-           (mapcar (lambda (subschema)
-                     (handler-case
-                         (cons
-                           (coerce-data value subschema)
-                           t)
-                       (schema-error ()
-                         (cons nil nil))))
-                   schemas)))
-    (cond
-      ((schema-one-of schema)
-       (let ((results (let ((*ignore-additional-properties* t))
-                        (map-schemas (schema-one-of schema)))))
-         (unless (= 1 (count t results :key #'cdr))
-           (error 'schema-coercion-failed
-                  :value value
-                  :schema schema
-                  :message "Multiple schemas are possible for oneOf composition schema"))
-         (car (find-if #'cdr results))))
-      ((schema-any-of schema)
-       (let ((results (let ((*ignore-additional-properties* t))
-                        (map-schemas (schema-any-of schema)))))
-         (when (= 0 (count t results :key #'cdr))
-           (error 'schema-coercion-failed
-                  :value value
-                  :schema schema
-                  :message "Every schemas aren't possible for anyOf composition schema"))
-         (apply #'append (mapcar #'car results))))
-      ((schema-all-of schema)
-       (mapcan (lambda (subschema)
-                 (coerce-data value subschema))
-               (schema-all-of schema))))))
+  (process-composition-schema 'coerce-data value schema))
 
 (defmethod coerce-data (value (schema negative-schema))
   (handler-case
@@ -82,3 +100,31 @@
          :value value
          :schema schema
          :message "Possible for negative schema"))
+
+(defmethod process-one-of ((process-type (eql 'validate-data)) value schema)
+  (let ((results (map-schemas #'validate-data value (schema-one-of schema))))
+    (unless (= 1 (count t results :key #'cdr))
+      (error 'schema-validation-failed
+             :value value
+             :schema schema
+             :message "Multiple schemas are possible for oneOf composition schema"))
+    t))
+
+(defmethod process-any-of ((process-type (eql 'validate-data)) value schema)
+  (let ((results (map-schemas #'validate-data value (schema-any-of schema))))
+    (when (= 0 (count t results :key #'cdr))
+      (error 'schema-validation-failed
+             :value value
+             :schema schema
+             :message "Every schemas aren't possible for anyOf composition schema"))
+    t))
+
+(defmethod process-all-of ((process-type (eql 'validate-data)) value schema)
+  (every (lambda (subschema)
+           (handler-case (validate-data value subschema)
+             (schema-error ()
+               nil)))
+         (schema-all-of schema)))
+
+(defmethod validate-data (value (schema composition-schema))
+  (process-composition-schema 'validate-data value schema))
