@@ -42,16 +42,33 @@
                        message)))))
 
 (define-condition schema-object-error (schema-error)
-  ((missing-keys :initarg :missing-keys
-                 :reader schema-object-error-missing-keys)
-   (invalid-keys :initarg :invalid-keys
-                 :reader schema-object-error-invalid-keys)
-   (unpermitted-keys :initarg :unpermitted-keys
-                     :reader schema-object-error-unpermitted-keys)
+  ((missing :initarg :missing
+            :reader schema-object-error-missing-keys)
+   (invalid :initarg :invalid
+            :reader schema-object-error-invalid-key-error-pairs)
+   (unpermitted :initarg :unpermitted
+                :reader schema-object-error-unpermitted-keys)
    (value :initarg :value
           :reader schema-object-value)
    (schema :initarg :schema
-           :reader schema-object-schema)))
+           :reader schema-object-schema))
+  (:report (lambda (condition stream)
+             (write-string "Invalid object:" stream)
+             (with-accessors ((missing schema-object-error-missing-keys)
+                              (invalid schema-object-error-invalid-key-error-pairs)
+                              (unpermitted schema-object-error-unpermitted-keys))
+                 condition
+               (when missing
+                 (format stream "~%  Missing: ~{~A~^, ~}" missing))
+               (when unpermitted
+                 (format stream "~%  Unpermitted: ~{~A~^, ~}" unpermitted))
+               (when invalid
+                 (format stream "~%  Invalid:")
+                 (loop :for (key . schema-error) :in invalid
+                       :do (format stream "~%    ~A: ~A" key schema-error)))))))
+
+(defun schema-object-error-invalid-keys (schema-object-error)
+  (mapcar #'car (schema-object-error-invalid-key-error-pairs schema-object-error)))
 
 (define-condition schema-multiple-error (schema-error)
   ((subschemas

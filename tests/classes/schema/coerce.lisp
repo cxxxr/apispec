@@ -77,7 +77,7 @@
   (ok (signals (coerce-data 10 (schema (array :enum '("foo" "bar"))))
                'schema-coercion-failed)))
 
-(defmacro signals* (form condition &rest slot-value-pairs)
+(defmacro signals* (form condition &rest reader-value-pairs)
   (let ((c (gensym))
         (condition-type (gensym)))
     `(let ((,condition-type ,condition))
@@ -85,8 +85,8 @@
                 (handler-bind ((condition
                                  (lambda (,c)
                                    (when (and (typep ,c ,condition-type)
-                                              ,@(loop :for (slot-name value) :on slot-value-pairs :by #'cddr
-                                                      :collect `(equal (slot-value ,c ,slot-name) ,value)))
+                                              ,@(loop :for (reader value) :on reader-value-pairs :by #'cddr
+                                                      :collect `(equal (funcall ,reader ,c) ,value)))
                                      (return ,c)))))
                   ,form
                   nil))
@@ -102,7 +102,7 @@
                              '(object
                                (("name" string))))
                 'schema-object-error
-                'apispec/classes/schema/errors::invalid-keys '("name")))
+                #'apispec/classes/schema/errors:schema-object-error-invalid-keys '("name")))
   (ok (signals* (coerce-data '(("foo" . 1)
                                ("bar" . "a"))
                              '(object
@@ -110,7 +110,7 @@
                                 ("bar" number)
                                 ("baz" number))))
                 'schema-object-error
-                'apispec/classes/schema/errors::invalid-keys '("foo" "bar")))
+                #'apispec/classes/schema/errors:schema-object-error-invalid-keys '("foo" "bar")))
   (ok (equalp (coerce-data '(("hi" . "all"))
                            '(object
                              (("name" string))))
@@ -120,7 +120,7 @@
                                (("name" string))
                                :required ("name")))
                 'schema-object-error
-                'apispec/classes/schema/errors::missing-keys '("name")))
+                #'apispec/classes/schema/errors:schema-object-error-missing-keys '("name")))
 
   (testing "additionalProperties"
     (ok (equal (coerce-data '(("name" . "fukamachi")
@@ -137,7 +137,7 @@
                                  (("name" string))
                                  :additional-properties nil))
                   'schema-object-error
-                  'apispec/classes/schema/errors::unpermitted-keys '("created-at" "updated-at")))
+                  #'apispec/classes/schema/errors:schema-object-error-unpermitted-keys '("created-at" "updated-at")))
     (let ((data (coerce-data '(("name" . "fukamachi")
                                ("created-at" . "2019-04-30"))
                              '(object
@@ -182,13 +182,13 @@
       (ok (signals (coerce-data '(("bark" . t)
                                   ("hunts" . t))
                                 schema)
-                   'schema-coercion-failed))
+                   'schema-oneof-error))
       (ok (signals (coerce-data '(("bark" . t)
                                   ("hunts" . t)
                                   ("breed" . "Husky")
                                   ("age" . 3))
                                 schema)
-                   'schema-coercion-failed))))
+                   'schema-oneof-error))))
   (testing "anyOf"
     (let ((schema (make-instance 'composition-schema
                                  :any-of
