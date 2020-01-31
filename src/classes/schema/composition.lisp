@@ -15,8 +15,7 @@
                 #:schema-coercion-failed
                 #:schema-validation-failed
                 #:schema-oneof-error
-                #:schema-anyof-error
-                #:schema-allof-error)
+                #:schema-anyof-error)
   (:export #:composition-schema
            #:schema-one-of
            #:schema-any-of

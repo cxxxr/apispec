@@ -13,8 +13,7 @@
            #:schema-object-error-schema
            #:schema-validation-failed
            #:schema-oneof-error
-           #:schema-anyof-error
-           #:schema-allof-error))
+           #:schema-anyof-error))
 (in-package #:apispec/classes/schema/errors)
 
 (define-condition schema-error (apispec-error) ())
@@ -71,11 +70,4 @@
   (:report (lambda (condition stream)
              (format stream
                      "Every schemas aren't possible for anyOf composition schema: ~{~A~^ ~}"
-                     (schema-multiple-error-subschemas condition)))))
-
-(define-condition schema-allof-error (schema-multiple-error)
-  ()
-  (:report (lambda (condition stream)
-             (format stream
-                     "Possible for negative schema"
                      (schema-multiple-error-subschemas condition)))))
