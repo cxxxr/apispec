@@ -70,13 +70,13 @@
       (ok (signals (validate-data '(("bark" . t)
                                     ("hunts" . t))
                                   schema)
-                   'schema-validation-failed))
+                   'schema-oneof-error))
       (ok (signals (validate-data '(("bark" . t)
                                     ("hunts" . t)
                                     ("breed" . "Husky")
                                     ("age" . 3))
                                   schema)
-                   'schema-validation-failed))))
+                   'schema-oneof-error))))
   (testing "anyOf"
     (let ((schema (make-instance 'composition-schema
                                  :any-of
@@ -88,4 +88,4 @@
       (ok (validate-data '(("age" . 11)) schema))
       (ok (validate-data '(("pet_type" . "Cat") ("hunts" . t)) schema))
       (ok (signals (validate-data '("foo" . 0) schema)
-                   'schema-validation-failed)))))
+                   'schema-anyof-error)))))

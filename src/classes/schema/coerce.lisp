@@ -176,8 +176,8 @@
     (error 'schema-coercion-failed
            :value value
            :schema schema))
-  (let ((invalid-keys '())
-        (unpermitted-keys '())
+  (let ((invalid '())
+        (unpermitted '())
         (properties (object-properties schema)))
     (prog1
         (nconc
@@ -190,17 +190,17 @@
                collect (cons key
                              (and field-value
                                   (handler-case (coerce-data field-value (property-type prop))
-                                    (schema-coercion-failed ()
-                                      (push key invalid-keys))
-                                    (schema-validation-failed ()
-                                      (push key invalid-keys)))))
+                                    (schema-coercion-failed (e)
+                                      (push (cons key e) invalid))
+                                    (schema-validation-failed (e)
+                                      (push (cons key e) invalid)))))
                else if (and (not *ignore-additional-properties*)
                             additional-properties)
                collect (cons key
                              (and field-value
                                   (coerce-data field-value additional-properties)))
                else if (not *ignore-additional-properties*)
-               do (push key unpermitted-keys))
+               do (push key unpermitted))
          (loop for prop in properties
                for type = (property-type prop)
                when (and (schema-has-default-p type)
@@ -211,16 +211,16 @@
                collect
                   (cons (property-name prop)
                         (schema-default type))))
-      (let ((missing-keys
+      (let ((missing
               (loop for key in (object-required schema)
                     unless (find key value :key #'car :test #'equal)
                     collect key)))
-        (when (or invalid-keys
-                  missing-keys
-                  unpermitted-keys)
+        (when (or invalid
+                  missing
+                  unpermitted)
           (error 'schema-object-error
-                 :invalid-keys (nreverse invalid-keys)
-                 :missing-keys missing-keys
-                 :unpermitted-keys (nreverse unpermitted-keys)
+                 :invalid (nreverse invalid)
+                 :missing missing
+                 :unpermitted (nreverse unpermitted)
                  :value value
                  :schema schema))))))

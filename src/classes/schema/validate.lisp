@@ -241,32 +241,32 @@
   (unless (object-properties schema)
     (return-from validate-data value))
 
-  (let ((invalid-keys '())
-        (unpermitted-keys '()))
+  (let ((invalid '())
+        (unpermitted '()))
     (loop for (key . field-value) in value
           for prop = (find key (object-properties schema)
                            :key #'property-name
                            :test #'equal)
           do (if prop
                  (handler-case (validate-data field-value (property-type prop))
-                   (schema-validation-failed ()
-                     (push key invalid-keys)))
+                   (schema-validation-failed (e)
+                     (push (cons key e) invalid)))
                  (let ((additional-properties (object-additional-properties schema)))
                    (etypecase additional-properties
-                     (null (push key unpermitted-keys))
+                     (null (push key unpermitted))
                      ((eql t))
                      (schema (validate-data field-value additional-properties))))))
-    (let ((missing-keys
+    (let ((missing
             (loop for key in (object-required schema)
                   unless (find key value :key #'car :test #'equal)
                   collect key)))
-      (when (or invalid-keys
-                missing-keys
-                unpermitted-keys)
+      (when (or invalid
+                missing
+                unpermitted)
         (error 'schema-object-error
-               :invalid-keys (nreverse invalid-keys)
-               :missing-keys missing-keys
-               :unpermitted-keys (nreverse unpermitted-keys)
+               :invalid (nreverse invalid)
+               :missing missing
+               :unpermitted (nreverse unpermitted)
                :value value
                :schema schema))
       (unless (and (or (not (object-min-properties schema))
