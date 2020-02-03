@@ -109,7 +109,9 @@
                                                (media-type-schema media-type))
                                           t)))
                           (handler-case
-                              (encode-data data schema content-type)
+                              (progn
+                                ;; (encode-data data schema content-type)
+                                (validate-data data schema))
                             (body-encode-error (e)
                               (error 'response-validation-failed
                                      :value data
