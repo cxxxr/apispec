@@ -110,8 +110,8 @@
                                           t)))
                           (handler-case
                               (progn
-                                ;; (encode-data data schema content-type)
-                                (validate-data data schema))
+                                (validate-data data schema)
+                                (encode-data data schema content-type))
                             (body-encode-error (e)
                               (error 'response-validation-failed
                                      :value data
