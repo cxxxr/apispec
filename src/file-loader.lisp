@@ -49,6 +49,21 @@
            #:load-from-file))
 (in-package #:apispec/file-loader)
 
+(defvar *current-path-rule* nil)
+(defvar *current-method* nil)
+
+(defun gethash* (key hash)
+  (let* ((not-found '#:not-found)
+         (value (gethash key hash not-found)))
+    (when (and (eq value not-found)
+               *current-method*
+               *current-path-rule*)
+      (error "~A ~A: ~A key does not exist"
+             *current-method*
+             *current-path-rule*
+             key))
+    value))
+
 (defun open-yaml-file (file)
   (let ((file-path (probe-file file)))
     (unless file-path
@@ -173,14 +188,22 @@
                  :description (gethash "description" hash)
                  :parameters (mapcar (lambda (param) (make-from-hash 'parameter param))
                                      (gethash "parameters" hash))
-                 :get (make-from-hash 'operation (gethash "get" hash))
-                 :put (make-from-hash 'operation (gethash "put" hash))
-                 :post (make-from-hash 'operation (gethash "post" hash))
-                 :delete (make-from-hash 'operation (gethash "delete" hash))
-                 :options (make-from-hash 'operation (gethash "options" hash))
-                 :head (make-from-hash 'operation (gethash "head" hash))
-                 :patch (make-from-hash 'operation (gethash "patch" hash))
-                 :trace (make-from-hash 'operation (gethash "trace" hash))))
+                 :get (let ((*current-method* :get))
+                        (make-from-hash 'operation (gethash "get" hash)))
+                 :put (let ((*current-method* :put))
+                        (make-from-hash 'operation (gethash "put" hash)))
+                 :post (let ((*current-method* :post))
+                         (make-from-hash 'operation (gethash "post" hash)))
+                 :delete (let ((*current-method* :delete))
+                           (make-from-hash 'operation (gethash "delete" hash)))
+                 :options (let ((*current-method* :options))
+                            (make-from-hash 'operation (gethash "options" hash)))
+                 :head (let ((*current-method* :head))
+                         (make-from-hash 'operation (gethash "head" hash)))
+                 :patch (let ((*current-method* :patch))
+                          (make-from-hash 'operation (gethash "patch" hash)))
+                 :trace (let ((*current-method* :trace))
+                          (make-from-hash 'operation (gethash "trace" hash)))))
 
 (defmethod make-from-hash ((class (eql (find-class 'operation))) hash)
   (when hash
@@ -193,7 +216,7 @@
                                        (gethash "parameters" hash))
                    :request-body (and (gethash "requestBody" hash)
                                       (make-from-hash 'request-body (gethash "requestBody" hash)))
-                   :responses (loop for key being each hash-key of (gethash "responses" hash)
+                   :responses (loop for key being each hash-key of (gethash* "responses" hash)
                                     using (hash-value value)
                                     collect (cons (princ-to-string key)
                                                   (make-from-hash 'response value)))
@@ -274,7 +297,8 @@
     (loop for path-rule being each hash-key of (gethash "paths" parsed-hash)
           using (hash-value path-item)
           collect (cons path-rule
-                        (make-from-hash 'path-item path-item)))))
+                        (let ((*current-path-rule* path-rule))
+                          (make-from-hash 'path-item path-item))))))
 
 (defun get-schemas-object (parsed-hash)
   (let ((*doc* parsed-hash))
