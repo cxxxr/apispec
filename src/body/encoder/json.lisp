@@ -10,8 +10,6 @@
                 #:schema-nullable-p
                 #:property-name
                 #:property-type)
-  (:import-from #:apispec/classes/schema/validate
-                #:validate-data)
   (:shadowing-import-from #:apispec/classes/schema
                           #:schema
                           #:number
@@ -88,15 +86,14 @@
     (boolean (encode-json-boolean value))
     (binary (error "Can't encode binary data to JSON"))
     (otherwise
-     (validate-data value schema)
-     (typecase value
-       (null
-        (if (schema-nullable-p schema)
-            (princ "null")
-            ;; Not nullable error
-            (error 'body-encode-error
-                   :value value
-                   :schema schema)))
-       (otherwise (jojo:with-output (*standard-output*)
-                    (jojo:%to-json value))))))
+      (typecase value
+        (null
+          (if (schema-nullable-p schema)
+              (princ "null")
+              ;; Not nullable error
+              (error 'body-encode-error
+                     :value value
+                     :schema schema)))
+        (otherwise (jojo:with-output (*standard-output*)
+                     (jojo:%to-json value))))))
   (values))
