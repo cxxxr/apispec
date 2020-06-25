@@ -154,7 +154,10 @@
                               (("name" string))
                               :additional-properties (or date null)))
                '(("name" . "fukamachi")
-                 ("created-at" . nil))))))
+                 ("created-at" . nil))))
+    (ok (equalp '(("key1" . #()))
+                (coerce-data '(("key1" . ()))
+                             (schema (object (("key1" (array :items (schema (string :enum '("foo" "bar")))))))))))))
 
 (deftest coerce-default-tests
   (ok (equal (coerce-data nil '(string :default "none"))

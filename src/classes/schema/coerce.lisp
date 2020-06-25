@@ -188,12 +188,11 @@
                                 :test #'equal)
                if prop
                collect (cons key
-                             (and field-value
-                                  (handler-case (coerce-data field-value (property-type prop))
+                             (handler-case (coerce-data field-value (property-type prop))
                                     (schema-coercion-failed (e)
                                       (push (cons key e) invalid))
                                     (schema-validation-failed (e)
-                                      (push (cons key e) invalid)))))
+                                      (push (cons key e) invalid))))
                else if (and (not *ignore-additional-properties*)
                             additional-properties)
                collect (cons key
