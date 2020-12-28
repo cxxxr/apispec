@@ -29,9 +29,7 @@
       (handler-case
           (parse-with-media-type body-stream media-type content-type content-length)
         (schema-error (e)
-          (error 'request-body-validation-failed
-                 :value (slot-value e 'apispec/classes/schema/errors::value)
-                 :schema (slot-value e 'apispec/classes/schema/errors::schema)))
+          (error e))
         (apispec-error ()
           (error 'request-body-parse-error
                  :content-type content-type))))))
