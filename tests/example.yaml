@@ -1,4 +1,7 @@
 openapi: '3.0.1'
+info:
+  title: Simple API overview
+  version: 2.0.0
 paths:
   /foo:
     post:
