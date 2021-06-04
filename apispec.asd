@@ -4,12 +4,14 @@
   :author "Eitaro Fukamachi"
   :license "BSD 3-Clause"
   :description "API request / response validations"
-  :depends-on ("apispec/main")
+  :depends-on ("openapi-parser"
+               "apispec/main")
   :pathname "src"
   :in-order-to ((test-op (test-op "apispec/tests"))))
 
 (register-system-packages "lack-request" '(#:lack.request))
 (register-system-packages "lack-response" '(#:lack.response))
+(asdf:register-system-packages "openapi-parser" '(#:openapi-parser #:openapi-parser/schema))
 
 (defsystem "apispec/tests"
   :depends-on ("apispec"
