@@ -49,9 +49,6 @@
            #:load-from-file))
 (in-package #:apispec/file-loader)
 
-(defvar *current-path-rule* nil)
-(defvar *current-method* nil)
-
 (defgeneric make-from (schema))
 
 (defmethod make-from ((schema openapi-parser/schema/3.0.1:<parameter>))
