@@ -1,6 +1,6 @@
 (defpackage #:apispec/file-loader
   (:use #:cl
-        #:openapi-parser/schema)
+        #:openapi-parser/schema/3/interface)
   (:import-from #:apispec/classes/schema
                 #:schema
                 #:composition-schema)
@@ -51,7 +51,7 @@
 
 (defgeneric make-from (schema))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<parameter>))
+(defmethod make-from ((schema <parameter>))
   (apply #'make-instance
          'parameter
          :name (->name schema)
@@ -64,7 +64,7 @@
                  (and (->explode schema)
                       `(:explode ,(->explode schema))))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<schema>))
+(defmethod make-from ((schema <schema>))
   (let ((type (->type schema))
         (format (->format schema))
         (common-args
@@ -148,7 +148,7 @@
       (t
        (apply #'make-instance 'schema common-args)))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<path-item>))
+(defmethod make-from ((schema <path-item>))
   (make-instance 'path-item
                  :summary (->summary schema)
                  :description (->description schema)
@@ -163,7 +163,7 @@
                  :patch (when (->patch schema) (make-from (->patch schema)))
                  :trace (when (->trace schema) (make-from (->trace schema)))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<operation>))
+(defmethod make-from ((schema <operation>))
   (make-instance 'operation
                  :tags (->tags schema)
                  :summary (->summary schema)
@@ -176,7 +176,7 @@
                                   :collect (cons status-code (make-from response)))
                  :deprecated (->deprecated schema)))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<response>))
+(defmethod make-from ((schema <response>))
   (make-instance 'response
                  :description (->description schema)
                  :headers (and (->headers schema)
@@ -191,7 +191,7 @@
                                                    (and value
                                                         (make-from value)))))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<request-body>))
+(defmethod make-from ((schema <request-body>))
   (make-instance 'request-body
                  :description (->description schema)
                  :content (loop for key being each hash-key of (->content schema)
@@ -200,7 +200,7 @@
                                               (make-from value)))
                  :required (->required schema)))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<media-type>))
+(defmethod make-from ((schema <media-type>))
   (make-instance 'media-type
                  :schema (and (->schema schema)
                               (make-from (->schema schema)))
@@ -210,7 +210,7 @@
                                       collect (cons key
                                                     (make-from value))))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<encoding>))
+(defmethod make-from ((schema <encoding>))
   (apply #'make-instance 'encoding
          :content-type (->content-type schema)
          :headers (and (->headers schema)
@@ -224,7 +224,7 @@
                  (and (->explode schema)
                       `(:expldoe ,(->explode schema))))))
 
-(defmethod make-from ((schema openapi-parser/schema/3.0.1:<header>))
+(defmethod make-from ((schema <header>))
   (make-instance 'header
                  :required (->required schema)
                  :schema (and (->schema schema)

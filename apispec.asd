@@ -11,7 +11,9 @@
 
 (register-system-packages "lack-request" '(#:lack.request))
 (register-system-packages "lack-response" '(#:lack.response))
-(asdf:register-system-packages "openapi-parser" '(#:openapi-parser #:openapi-parser/schema))
+(asdf:register-system-packages "openapi-parser" '(#:openapi-parser
+                                                  #:openapi-parser/schema
+                                                  #:openapi-parser/schema/3/interface))
 
 (defsystem "apispec/tests"
   :depends-on ("apispec"
