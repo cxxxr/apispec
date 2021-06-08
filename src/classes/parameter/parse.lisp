@@ -43,6 +43,7 @@
           ((eq value *empty*)
            (when (parameter-required-p parameter)
              (push name missing))
+           #+(or)
            (push (cons name nil) results))
           (t
            (let ((parsed-value

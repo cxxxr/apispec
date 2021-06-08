@@ -42,7 +42,7 @@
                                                    :schema (schema (array :items 'string))
                                                    :style "form"
                                                    :explode nil)))
-              '(("name"))))
+              '()))
   (ok (signals (parse-query-string "id=abc,opq,xyz" (list))
                'parameter-validation-failed))
 
