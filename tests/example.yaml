@@ -15,3 +15,17 @@ paths:
       responses:
         '204':
           description: Successfully created a new user.
+  /foo/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+    get:
+      parameters:
+        - name: a
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK

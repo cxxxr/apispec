@@ -49,6 +49,8 @@
            #:load-from-file))
 (in-package #:apispec/file-loader)
 
+(defvar *path-item-parameters*)
+
 (defgeneric make-from (schema))
 
 (defmethod make-from ((schema <parameter>))
@@ -57,7 +59,8 @@
          :name (->name schema)
          :in (->in schema)
          :required (->required schema)
-         :schema (make-from (->schema schema))
+         :schema (when (->schema schema)
+                   (make-from (->schema schema)))
          :allow-reserved (->allow-reserved schema)
          (append (and (->style schema)
                       `(:style ,(->style schema)))
@@ -149,27 +152,41 @@
        (apply #'make-instance 'schema common-args)))))
 
 (defmethod make-from ((schema <path-item>))
-  (make-instance 'path-item
-                 :summary (->summary schema)
-                 :description (->description schema)
-                 :parameters (mapcar (lambda (param) (make-from param))
-                                     (->parameters schema))
-                 :get (when (->get schema) (make-from (->get schema)))
-                 :put (when (->put schema) (make-from (->put schema)))
-                 :post (when (->post schema) (make-from (->post schema)))
-                 :delete (when (->delete schema) (make-from (->delete schema)))
-                 :options (when (->options schema) (make-from (->options schema)))
-                 :head (when (->head schema) (make-from (->head schema)))
-                 :patch (when (->patch schema) (make-from (->patch schema)))
-                 :trace (when (->trace schema) (make-from (->trace schema)))))
+  (let ((*path-item-parameters* (->parameters schema)))
+    (make-instance 'path-item
+                   :summary (->summary schema)
+                   :description (->description schema)
+                   :parameters (mapcar #'make-from *path-item-parameters*)
+                   :get (when (->get schema) (make-from (->get schema)))
+                   :put (when (->put schema) (make-from (->put schema)))
+                   :post (when (->post schema) (make-from (->post schema)))
+                   :delete (when (->delete schema) (make-from (->delete schema)))
+                   :options (when (->options schema) (make-from (->options schema)))
+                   :head (when (->head schema) (make-from (->head schema)))
+                   :patch (when (->patch schema) (make-from (->patch schema)))
+                   :trace (when (->trace schema) (make-from (->trace schema))))))
+
+(defun parameter= (parameter1 parameter2)
+  (check-type parameter1 <parameter>)
+  (check-type parameter2 <parameter>)
+  (and (equal (->name parameter1) (->name parameter2))
+       (equal (->in parameter1) (->in parameter2))))
+
+(defun merge-parameters (parameters1 parameters2)
+  (append (remove-if (lambda (parameter)
+                       (member parameter parameters2
+                               :test #'parameter=))
+                     parameters1)
+          parameters2))
 
 (defmethod make-from ((schema <operation>))
   (make-instance 'operation
                  :tags (->tags schema)
                  :summary (->summary schema)
                  :description (->description schema)
-                 :parameters (mapcar (lambda (param) (make-from param))
-                                     (->parameters schema))
+                 :parameters (mapcar #'make-from
+                                     (merge-parameters *path-item-parameters*
+                                                       (->parameters schema)))
                  :request-body (and (->request-body schema)
                                     (make-from (->request-body schema)))
                  :responses (loop :for (status-code . response) :in (->field* (->responses schema))
@@ -252,7 +269,8 @@
   (->openapi (spec-openapi spec)))
 
 (defun load-from-file (file)
-  (let ((openapi (openapi-parser:parse-file file)))
+  (let ((openapi (openapi-parser:parse-file file))
+        (*path-item-parameters* '()))
     (make-spec :openapi openapi
                :router (make-router (get-paths-object openapi))
                :schemas (get-schemas-object openapi))))

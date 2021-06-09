@@ -4,8 +4,13 @@
         #:apispec/file-loader))
 (in-package #:apispec/tests/file-loader)
 
+(defvar *spec*)
+
+(setup
+  (setf *spec* (load-from-file (asdf:system-relative-pathname :apispec "./tests/example.yaml"))))
+
 (deftest structural-test
-  (let* ((spec (load-from-file (asdf:system-relative-pathname :apispec "./tests/example.yaml")))
+  (let* ((spec *spec*)
          (properties
            (apispec:object-properties
             (apispec:media-type-schema
@@ -30,3 +35,23 @@
       (ok (null (apispec:string-max-length type)))
       (ok (null (apispec:string-min-length type)))
       (ok (null (apispec:string-pattern type))))))
+
+(deftest parameters-test
+  (let* ((spec *spec*)
+         (parameters
+           (apispec:operation-parameters
+            (apispec:path-item-get
+             (cdr (assoc "/foo/{id}" (apispec/router::router-paths (spec-router spec)) :test #'equal))))))
+    (ok (= 2 (length parameters)))
+    (let ((parameter (first parameters)))
+      (ok (null (apispec:parameter-allow-reserved-p parameter)))
+      (ok (equal "path" (apispec:parameter-in parameter)))
+      (ok (equal "id" (apispec:parameter-name parameter)))
+      (ok (eq t (apispec:parameter-required-p parameter)))
+      (ok (null (apispec:parameter-schema parameter))))
+    (let ((parameter (second parameters)))
+      (ok (null (apispec:parameter-allow-reserved-p parameter)))
+      (ok (equal "query" (apispec:parameter-in parameter)))
+      (ok (equal "a" (apispec:parameter-name parameter)))
+      (ok (eq nil (apispec:parameter-required-p parameter)))
+      (ok (typep (apispec:parameter-schema parameter) 'apispec/classes/schema:string)))))
