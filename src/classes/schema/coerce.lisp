@@ -129,11 +129,11 @@
 (defmethod coerce-data (value (schema boolean))
   (typecase value
     (cl:string
-      (unless *coerce-integer-string-to-boolean*
-        (error 'schema-coercion-failed :value value :schema schema))
       (cond
-        ((equal value "1") t)
-        ((equal value "0") nil)
+        ((and *coerce-integer-string-to-boolean* (equal value "1")) t)
+        ((and *coerce-integer-string-to-boolean* (equal value "0")) nil)
+        ((and *coerce-integer-string-to-boolean* (equal value "true")) t)
+        ((and *coerce-integer-string-to-boolean* (equal value "false")) nil)
         (t (error 'schema-coercion-failed :value value :schema schema))))
     (cl:boolean value)
     (otherwise
