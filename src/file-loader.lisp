@@ -181,6 +181,7 @@
 
 (defmethod make-from ((schema <operation>))
   (make-instance 'operation
+                 :%schema schema
                  :tags (->tags schema)
                  :summary (->summary schema)
                  :description (->description schema)

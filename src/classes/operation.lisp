@@ -74,7 +74,9 @@
    (deprecated :type boolean
                :initarg :deprecated
                :initform nil
-               :reader operation-deprecated-p)))
+               :reader operation-deprecated-p)
+   (%schema :initarg :%schema
+            :reader operation-schema)))
 
 (defstruct (apispec-request (:include request)
                             (:conc-name request-))
