@@ -7,7 +7,7 @@
                 #:property-type
                 #:schema
                 #:coerce-data
-                #:*coerce-integer-string-to-boolean*)
+                #:*coerce-string-to-boolean*)
   (:shadowing-import-from #:apispec/classes/schema
                           #:array)
   (:import-from #:cl-ppcre)
@@ -93,7 +93,7 @@
       (values (ppcre:scan-to-strings "(?<=\\.)([^\\.]+)" value)))))
 
 (defun parse-form-value (parameters name &key as explode)
-  (let ((*coerce-integer-string-to-boolean* t))
+  (let ((*coerce-string-to-boolean* t))
     (coerce-data
       (typecase as
         (array
@@ -191,7 +191,7 @@
 (defun parse-complex-parameter (alist name style explode schema)
   (assert (association-list-p alist 'string 'string))
   (check-type schema schema)
-  (let ((*coerce-integer-string-to-boolean* (string= style "form")))
+  (let ((*coerce-string-to-boolean* (string= style "form")))
     (coerce-data
       (cond
         ((equal style "form")

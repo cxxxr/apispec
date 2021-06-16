@@ -15,7 +15,7 @@
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:coerce-data
-           #:*coerce-integer-string-to-boolean*))
+           #:*coerce-string-to-boolean*))
 (in-package #:apispec/classes/schema/coerce)
 
 (defgeneric coerce-data (value schema)
@@ -124,16 +124,16 @@
     (local-time::invalid-timestring ()
       (error 'schema-coercion-failed :value value :schema schema))))
 
-(defvar *coerce-integer-string-to-boolean* nil)
+(defvar *coerce-string-to-boolean* nil)
 
 (defmethod coerce-data (value (schema boolean))
   (typecase value
     (cl:string
       (cond
-        ((and *coerce-integer-string-to-boolean* (equal value "1")) t)
-        ((and *coerce-integer-string-to-boolean* (equal value "0")) nil)
-        ((and *coerce-integer-string-to-boolean* (equal value "true")) t)
-        ((and *coerce-integer-string-to-boolean* (equal value "false")) nil)
+        ((and *coerce-string-to-boolean* (equal value "1")) t)
+        ((and *coerce-string-to-boolean* (equal value "0")) nil)
+        ((and *coerce-string-to-boolean* (equal value "true")) t)
+        ((and *coerce-string-to-boolean* (equal value "false")) nil)
         (t (error 'schema-coercion-failed :value value :schema schema))))
     (cl:boolean value)
     (otherwise

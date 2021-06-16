@@ -13,7 +13,7 @@
                 #:object
                 #:array-items
                 #:coerce-data
-                #:*coerce-integer-string-to-boolean*)
+                #:*coerce-string-to-boolean*)
   (:shadowing-import-from #:apispec/classes/schema
                           #:byte
                           #:number
@@ -83,7 +83,7 @@
           (let ((*multipart-force-stream* nil))
             (parse-body value content-type))
         (declare (ignore parsed-headers))
-        (let ((*coerce-integer-string-to-boolean*
+        (let ((*coerce-string-to-boolean*
                 (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))))
           (if (and (starts-with-subseq "application/x-www-form-urlencoded" (string-downcase content-type))
                    (encoding-style encoding))

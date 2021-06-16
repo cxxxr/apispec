@@ -53,7 +53,7 @@
     (ok (= (local-time:timestamp-second date) 3)))
   (ok (signals (coerce-data "1" 'boolean)))
   (ok (signals (coerce-data "0" 'boolean)))
-  (let ((*coerce-integer-string-to-boolean* t))
+  (let ((*coerce-string-to-boolean* t))
     (ok (eq (coerce-data "1" 'boolean) t))
     (ok (eq (coerce-data "0" 'boolean) nil))
     (ok (eq (coerce-data "true" 'boolean) t))
