@@ -8,7 +8,7 @@
 
 (defun compile-path-template (template &optional (result-value t))
   (check-type template string)
-  (let* ((match-vars (ppcre:all-matches-as-strings "(?<={)[^}]+(?=})" template))
+  (let* ((match-vars (nth-value 1 (ppcre:scan-to-strings "{([^}]+)}" template)))
          (template-regexp (format nil "^~A$" (ppcre:regex-replace-all "{[^}]+}" template "([^/]+)")))
          (scanner (ppcre:create-scanner template-regexp)))
     (values
@@ -17,7 +17,7 @@
         (when-let (matches (nth-value 1 (ppcre:scan-to-strings scanner path-info)))
           (values result-value
                   (if match-vars
-                      (loop for var in match-vars
+                      (loop for var across match-vars
                             for match across matches
                             collect (cons var match))
                       nil))))
