@@ -67,6 +67,19 @@
                  (and (->explode schema)
                       `(:explode ,(->explode schema))))))
 
+;;
+;; These accessors are deleted in 3.1.x
+
+(defun get-nullable (schema)
+  (typecase schema
+    (openapi-parser/schema/3.0.1:<schema> (->nullable schema))
+    (otherwise nil)))
+
+(defun get-deprecated (schema)
+  (typecase schema
+    (openapi-parser/schema/3.0.1:<schema> (->deprecated schema))
+    (otherwise nil)))
+
 (defmethod make-from ((schema <schema>))
   (let ((type (->type schema))
         (format (->format schema))
@@ -74,8 +87,8 @@
           (append (and (->default schema)
                        (list :default (->default schema)))
                   (list :enum (->enum schema)
-                        :nullable (->nullable schema)
-                        :deprecated (->deprecated schema)))))
+                        :nullable (get-nullable schema)
+                        :deprecated (get-deprecated schema)))))
     (cond
       ((or (string= type "object")
            (and (null type) ; dead code?
