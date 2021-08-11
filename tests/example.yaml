@@ -12,6 +12,9 @@ paths:
               properties:
                 foo:
                   type: string
+                json_string:
+                  type: string
+                  format: json
       responses:
         '204':
           description: Successfully created a new user.
