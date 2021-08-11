@@ -6,6 +6,7 @@
   (:import-from #:flexi-streams)
   (:import-from #:babel)
   (:import-from #:cl-ppcre)
+  (:import-from #:jonathan)
   (:export #:proper-list-p
            #:proper-list
            #:association-list-p
@@ -15,7 +16,8 @@
            #:slurp-stream
            #:detect-charset
            #:email-format-p
-           #:uuid-format-p))
+           #:uuid-format-p
+           #:json-string-p))
 (in-package #:apispec/utils)
 
 (defpackage #:apispec/utils/lambda-predicate)
@@ -124,3 +126,9 @@
   (when (ppcre:scan "\\A[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\\z"
                     string)
     t))
+
+(defun json-string-p (string)
+  (handler-case (progn
+                  (jojo:parse string)
+                  t)
+    (error () nil)))

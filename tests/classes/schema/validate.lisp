@@ -52,7 +52,15 @@
                      (schema (date))))
   (ok (signals (validate-data "2020-01-21T23:03:22.503288Z"
                               (schema (date)))
-               'schema-validation-failed)))
+               'schema-validation-failed))
+
+  ;; json
+  (ok (validate-data "{\"key1\": 100}" (schema (string :format "json"))))
+  (ok (signals (validate-data "{xx: 100}" (schema (string :format "json")))
+               'schema-validation-failed))
+  (ok (signals (validate-data "{xx: 100" (schema (string :format "json")))
+               'schema-validation-failed))
+  )
 
 (deftest composition-schema-tests
   (testing "oneOf"

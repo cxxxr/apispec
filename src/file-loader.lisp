@@ -28,6 +28,7 @@
                           #:date-time
                           #:email
                           #:uuid
+                          #:json
                           #:object
                           #:property
                           #:float
@@ -128,6 +129,7 @@
                                 ((string= format "date-time") 'date-time)
                                 ((string= format "email") 'email)
                                 ((string= format "uuid") 'uuid)
+                                ((string= format "json") 'json)
                                 (t 'string))
               :max-length (->max-length schema)
               :min-length (->min-length schema)
