@@ -5,8 +5,7 @@
         #:apispec/classes/parameter/errors)
   (:import-from #:apispec/classes/schema
                 #:coerce-data
-                #:*coerce-string-to-boolean*
-                #:schema-nullable-p)
+                #:*coerce-string-to-boolean*)
   (:import-from #:apispec/complex
                 #:parse-complex-string
                 #:parse-complex-parameter)
@@ -37,33 +36,28 @@
                                    (error 'parameter-parse-failed
                                           :value query-string)))))
         results missing invalid)
-    (flet ((consume-parameter (name)
-             (setf query-parameters (delete-from-alist query-parameters name))))
-      (dolist (parameter parameters)
-        (let* ((name (parameter-name parameter))
-               (value (aget query-parameters name *empty*)))
-          (cond
-            ((eq value *empty*)
-             (when (parameter-required-p parameter)
-               (push name missing))
-             #+(or)
-             (push (cons name nil) results))
-            ((and (null value)
-                  (schema-nullable-p (parameter-schema parameter)))
-             (consume-parameter name))
-            (t
-             (let ((parsed-value
-                     (handler-case
-                         (parse-complex-parameter query-parameters
-                                                  name
-                                                  (parameter-style parameter)
-                                                  (parameter-explode-p parameter)
-                                                  (parameter-schema parameter))
-                       (apispec-error (e)
-                         (push (cons name e) invalid)
-                         nil))))
-               (push (cons name parsed-value) results)
-               (consume-parameter name)))))))
+    (dolist (parameter parameters)
+      (let* ((name (parameter-name parameter))
+             (value (aget query-parameters name *empty*)))
+        (cond
+          ((eq value *empty*)
+           (when (parameter-required-p parameter)
+             (push name missing))
+           #+(or)
+           (push (cons name nil) results))
+          (t
+           (let ((parsed-value
+                   (handler-case
+                       (parse-complex-parameter query-parameters
+                                                name
+                                                (parameter-style parameter)
+                                                (parameter-explode-p parameter)
+                                                (parameter-schema parameter))
+                     (apispec-error (e)
+                       (push (cons name e) invalid)
+                       nil))))
+             (push (cons name parsed-value) results)
+             (setf query-parameters (delete-from-alist query-parameters name)))))))
     (when (or missing invalid query-parameters)
       (error 'parameter-validation-failed
              :in "query"
