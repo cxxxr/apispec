@@ -189,7 +189,7 @@
      (error "Unexpected style: ~S" style))))
 
 (defun parse-complex-parameter (alist name style explode schema)
-  (assert (association-list-p alist 'string '(or null string)))
+  (assert (association-list-p alist 'string 'string))
   (check-type schema schema)
   (let ((*coerce-string-to-boolean* (string= style "form")))
     (coerce-data
