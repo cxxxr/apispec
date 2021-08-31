@@ -12,6 +12,7 @@
            #:schema-object-error-value
            #:schema-object-error-schema
            #:schema-validation-failed
+           #:schema-multiple-error
            #:schema-oneof-error
            #:schema-anyof-error))
 (in-package #:apispec/classes/schema/errors)
