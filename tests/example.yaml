@@ -32,3 +32,19 @@ paths:
       responses:
         '200':
           description: OK
+  /bar:
+    get:
+      parameters:
+        - name: q1
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: q2
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK

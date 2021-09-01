@@ -75,3 +75,23 @@
       (ok (equal "a" (apispec:parameter-name parameter)))
       (ok (eq nil (apispec:parameter-required-p parameter)))
       (ok (typep (apispec:parameter-schema parameter) 'apispec/classes/schema:string)))))
+
+(deftest query-test
+  (let* ((spec *spec*)
+         (parameters
+           (apispec:operation-parameters
+            (apispec:find-route
+             (spec-router spec) :get "/bar"))))
+    (ok (= 2 (length parameters)))
+    (flet ((test (parameter expected-name expected-default)
+             (ok (equal "query" (apispec:parameter-in parameter)))
+             (ok (equal expected-name (apispec:parameter-name parameter)))
+             (ok (not (apispec:parameter-required-p parameter)))
+             (ok (eq t (apispec:parameter-explode-p parameter)))
+             (let ((schema (apispec:parameter-schema parameter)))
+               (ok (equal "boolean" (apispec:schema-type schema)))
+               (ok (eq expected-default (apispec:schema-default schema))))))
+      (testing "q1"
+        (test (first parameters) "q1" nil))
+      (testing "q2"
+        (test (second parameters) "q2" t)))))

@@ -85,8 +85,8 @@
   (let ((type (->type schema))
         (format (->format schema))
         (common-args
-          (append (and (->default schema)
-                       (list :default (->default schema)))
+          (append (unless (eq (->default schema #1='#:default) #1#)
+                    (list :default (->default schema)))
                   (list :enum (->enum schema)
                         :nullable (get-nullable schema)
                         :deprecated (get-deprecated schema)))))
