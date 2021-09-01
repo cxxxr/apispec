@@ -134,6 +134,9 @@
         ((and *coerce-string-to-boolean* (equal value "0")) nil)
         ((and *coerce-string-to-boolean* (equal value "true")) t)
         ((and *coerce-string-to-boolean* (equal value "false")) nil)
+        ((and *coerce-string-to-boolean* (equal value "")
+              (schema-has-default-p schema))
+         (schema-default schema))
         (t (error 'schema-coercion-failed :value value :schema schema))))
     (cl:boolean value)
     (otherwise
