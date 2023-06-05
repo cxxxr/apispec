@@ -86,6 +86,8 @@
   (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
               #(1 -2 3)))
   (ok (signals (coerce-data 10 (schema (array :enum '("foo" "bar"))))
+               'schema-coercion-failed))
+  (ok (signals (coerce-data "" '(array :items integer))
                'schema-coercion-failed)))
 
 (defmacro signals* (form condition &rest reader-value-pairs)
