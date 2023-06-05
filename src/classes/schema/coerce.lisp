@@ -153,9 +153,11 @@
 (defmethod coerce-data (value (schema array))
   (let ((value
           (handler-case
-              (coerce value 'vector)
+              (typecase value
+                (cl:string (error 'schema-coercion-failed :value value :schema schema))
+                (t (coerce value 'vector)))
             (type-error ()
-              (error 'schema-coercion-failed :valeu value :schema schema)))))
+              (error 'schema-coercion-failed :value value :schema schema)))))
     (cond ((array-items schema)
            (map 'vector
                 (lambda (item)

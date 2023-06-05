@@ -202,7 +202,8 @@
 ;; Array Type
 
 (defmethod validate-data (value (schema array))
-  (unless (arrayp value)
+  (unless (and (not (stringp value))
+               (arrayp value))
     (error 'schema-validation-failed
            :value value
            :schema schema

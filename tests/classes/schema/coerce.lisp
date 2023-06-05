@@ -65,7 +65,12 @@
   (ok (eq (coerce-data t 'boolean) t))
   (ok (eq (coerce-data nil 'boolean) nil))
   (ok (signals (coerce-data 1 'boolean) 'schema-coercion-failed))
-  (ok (signals (coerce-data #(1) 'boolean) 'schema-coercion-failed)))
+  (ok (signals (coerce-data #(1) 'boolean) 'schema-coercion-failed))
+  (let ((enum '("foo" "bar")))
+    (dolist (string enum)
+      (ok (coerce-data string (schema (string :enum enum)))))
+    (ok (signals (coerce-data "hoge" (schema (string :enum enum)))
+                 'schema-validation-failed))))
 
 (deftest coerce-date-time-tests
   (signals (coerce-data "foo" 'date-time)
@@ -81,6 +86,8 @@
   (ok (equalp (coerce-data '("1" "-2" "3") '(array :items integer))
               #(1 -2 3)))
   (ok (signals (coerce-data 10 (schema (array :enum '("foo" "bar"))))
+               'schema-coercion-failed))
+  (ok (signals (coerce-data "" '(array :items integer))
                'schema-coercion-failed)))
 
 (defmacro signals* (form condition &rest reader-value-pairs)
