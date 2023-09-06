@@ -119,7 +119,7 @@
 
 (defun email-format-p (string)
   (when (and (<= (length string) 256)
-             (ppcre:scan "\\A[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\\z" string))
+             (ppcre:scan "\\A[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*\\z" string))
     t))
 
 (defun uuid-format-p (string)
