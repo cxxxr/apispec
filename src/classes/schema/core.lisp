@@ -46,6 +46,7 @@
            #:date-time
            #:email
            #:uuid
+           #:json
 
            #:boolean
 
@@ -244,6 +245,9 @@
 
 (defclass uuid (string)
   ((format :initform "uuid")))
+
+(defclass json (string)
+  ((format :initform "json")))
 
 (defclass boolean (schema)
   ((type :initform "boolean")))

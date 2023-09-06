@@ -7,7 +7,8 @@
   (:import-from #:apispec/utils
                 #:association-list
                 #:email-format-p
-                #:uuid-format-p)
+                #:uuid-format-p
+                #:json-string-p)
   (:import-from #:cl-ppcre)
   (:import-from #:local-time)
   (:export #:schema-validation-failed
@@ -136,6 +137,13 @@
     (error 'schema-validation-failed
            :value value
            :schema schema))
+
+  (when (and (equal "json" (schema-format schema))
+             (not (json-string-p value)))
+    (error 'schema-validation-failed
+           :value value
+           :schema schema))
+
   t)
 
 (defmethod validate-data (value (schema binary))
@@ -194,7 +202,8 @@
 ;; Array Type
 
 (defmethod validate-data (value (schema array))
-  (unless (arrayp value)
+  (unless (and (not (stringp value))
+               (arrayp value))
     (error 'schema-validation-failed
            :value value
            :schema schema

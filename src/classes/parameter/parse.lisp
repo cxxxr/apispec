@@ -5,7 +5,7 @@
         #:apispec/classes/parameter/errors)
   (:import-from #:apispec/classes/schema
                 #:coerce-data
-                #:*coerce-integer-string-to-boolean*)
+                #:*coerce-string-to-boolean*)
   (:import-from #:apispec/complex
                 #:parse-complex-string
                 #:parse-complex-parameter)
@@ -43,6 +43,7 @@
           ((eq value *empty*)
            (when (parameter-required-p parameter)
              (push name missing))
+           #+(or)
            (push (cons name nil) results))
           (t
            (let ((parsed-value
@@ -154,7 +155,7 @@
            (push (cons name nil) results))
           (t
            (push (cons (parameter-name parameter)
-                       (let ((*coerce-integer-string-to-boolean* t))
+                       (let ((*coerce-string-to-boolean* t))
                          (handler-case
                              (coerce-data
                                (parse-complex-parameter cookies

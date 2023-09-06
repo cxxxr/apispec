@@ -7,37 +7,63 @@
         #:apispec/classes/schema/composition))
 (in-package #:apispec/tests/classes/schema/validate)
 
-(deftest validate-data-tests
-  (ok (signals (validate-data #(1 2 3) '(array 10))
-               'schema-validation-failed))
+(deftest validate-array-tests
+  (ok (validate-data #(1 2 3) (schema (array :items 'integer))))
+
+  (testing "array size"
+    (dolist (schema (list '(array 10)
+                          '(array :min-items 4)
+                          '(array :max-items 2)))
+      (ok (signals (validate-data #(1 2 3) schema)
+                   'schema-validation-failed)
+          (format nil "array size ~S" schema))))
+
+  (testing "none array data"
+    (dolist (value (list ""
+                         0
+                         t
+                         nil
+                         '(("a" . "b"))))
+      (ok (signals (validate-data value (schema (array :items 'integer)))
+                   'schema-validation-failed)
+          (format nil "none array data ~S" value))))
+
+  (testing "invalid element"
+    (dolist (element (list #\a
+                           "a"
+                           t
+                           nil
+                           '(("a" . "b"))))
+      (ok (signals (validate-data #(1 2 element)
+                                  (schema (array :items 'integer)))
+                   'schema-validation-failed)
+          (format nil "invalid element ~S" element)))))
+
+(deftest validate-object-tests
+  (ok (validate-data '()
+                     '(object
+                       (("name" string)))))
   (ok (signals (validate-data '(("hi" . "all"))
                               '(object
                                 (("name" string))
                                 :required ("name")))
-               'schema-object-error))
-  (ok (validate-data '()
-                     '(object
-                       (("name" string)))))
+               'schema-object-error)))
+
+(deftest validate-email-tests
   (ok (signals (validate-data "foo"
                               (schema (string :format "email")))
                'schema-validation-failed))
   (ok (validate-data "foo@gmail.com"
-                     (schema (string :format "email"))))
+                     (schema (string :format "email")))))
+
+(deftest validate-uuid-tests
   (ok (validate-data "d9d29401-3feb-48b2-ac79-54cee011717d"
                      (schema (string :format "uuid"))))
   (signals (validate-data "foo"
                           (schema (string :format "uuid")))
-           'schema-validation-failed)
-  (ok (validate-data #(1 2 3)
-                     (schema (array :items 'integer))))
-  (ok (signals (validate-data #(1 2 #\a)
-                              (schema (array :items 'integer)))
-               'schema-validation-failed))
-  (let ((enum '("foo" "bar")))
-    (dolist (string enum)
-      (ok (apispec:coerce-data string (schema (string :enum enum)))))
-    (ok (signals (apispec:coerce-data "hoge" (schema (string :enum enum)))
-                 'schema-validation-failed)))
+           'schema-validation-failed))
+
+(deftest validate-time-tests
   (ok (validate-data "2020-01-21T23:03:22.503288Z"
                      (schema (date-time))))
   (ok (signals (validate-data "2020-01-21T23:03:22.503a"
@@ -52,6 +78,13 @@
                      (schema (date))))
   (ok (signals (validate-data "2020-01-21T23:03:22.503288Z"
                               (schema (date)))
+               'schema-validation-failed)))
+
+(deftest validate-json-tests
+  (ok (validate-data "{\"key1\": 100}" (schema (string :format "json"))))
+  (ok (signals (validate-data "{xx: 100}" (schema (string :format "json")))
+               'schema-validation-failed))
+  (ok (signals (validate-data "{xx: 100" (schema (string :format "json")))
                'schema-validation-failed)))
 
 (deftest composition-schema-tests

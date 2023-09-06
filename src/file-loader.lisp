@@ -1,5 +1,6 @@
 (defpackage #:apispec/file-loader
-  (:use #:cl)
+  (:use #:cl
+        #:openapi-parser/schema/3/interface)
   (:import-from #:apispec/classes/schema
                 #:schema
                 #:composition-schema)
@@ -27,6 +28,7 @@
                           #:date-time
                           #:email
                           #:uuid
+                          #:json
                           #:object
                           #:property
                           #:float
@@ -42,282 +44,249 @@
   (:import-from #:cl-yaml
                 #:parse)
   (:export #:spec
-           #:spec-document
            #:spec-version
            #:spec-router
            #:spec-schemas
            #:load-from-file))
 (in-package #:apispec/file-loader)
 
-(defvar *current-path-rule* nil)
-(defvar *current-method* nil)
+(defvar *path-item-parameters*)
 
-(defun gethash* (key hash)
-  (let* ((not-found '#:not-found)
-         (value (gethash key hash not-found)))
-    (when (and (eq value not-found)
-               *current-method*
-               *current-path-rule*)
-      (error "~A ~A: ~A key does not exist"
-             *current-method*
-             *current-path-rule*
-             key))
-    value))
+(defgeneric make-from (schema))
 
-(defun open-yaml-file (file)
-  (let ((file-path (probe-file file)))
-    (unless file-path
-      (error "File not exists: ~A" file))
-    (let ((doc (yaml:parse file-path)))
-      (unless (gethash "openapi" doc)
-        (error "Invalid OpenAPI3 YAML format: 'openapi' version is not found"))
-      (unless (asdf/driver:version<= 3 (gethash "openapi" doc))
-        (error "Unsupported OpenAPI3 version: ~S" (gethash "openapi" doc)))
-      doc)))
+(defmethod make-from ((schema <parameter>))
+  (apply #'make-instance
+         'parameter
+         :name (->name schema)
+         :in (->in schema)
+         :required (->required schema)
+         :schema (when (->schema schema)
+                   (make-from (->schema schema)))
+         :allow-reserved (->allow-reserved schema)
+         (append (and (->style schema)
+                      `(:style ,(->style schema)))
+                 (and (->explode schema)
+                      `(:explode ,(->explode schema))))))
 
-(defgeneric make-from-hash (class hash)
-  (:method ((class symbol) hash)
-    (make-from-hash (find-class class) hash)))
+;;
+;; These accessors are deleted in 3.1.x
 
-(defun existsp (key hash)
-  (nth-value 1 (gethash key hash)))
+(defun get-nullable (schema)
+  (typecase schema
+    (openapi-parser/schema/3.0.1:<schema> (->nullable schema))
+    (otherwise nil)))
 
-(defmethod make-from-hash ((class (eql (find-class 'parameter))) hash)
-  (if (gethash "$ref" hash)
-      (make-from-hash class (get-component-hash (gethash "$ref" hash)))
-      (apply #'make-instance 'parameter
-             :name (gethash "name" hash)
-             :in (gethash "in" hash)
-             :required (gethash "required" hash)
-             :schema (make-from-hash 'schema (gethash "schema" hash))
-             :allow-reserved (gethash "allowReserved" hash)
-             (append (and (existsp "style" hash)
-                          `(:style ,(gethash "style" hash)))
-                     (and (existsp "explode" hash)
-                          `(:explode ,(gethash "explode" hash)))))))
+(defun get-deprecated (schema)
+  (typecase schema
+    (openapi-parser/schema/3.0.1:<schema> (->deprecated schema))
+    (otherwise nil)))
 
-(defmethod make-from-hash ((class (eql (find-class 'schema))) hash)
-  (if (gethash "$ref" hash)
-      (make-from-hash class (get-component-hash (gethash "$ref" hash)))
-      (let ((type (gethash "type" hash))
-            (format (gethash "format" hash))
-            (common-args
-              (append (and (existsp "default" hash)
-                           (list :default (gethash "default" hash)))
-                      (list :enum (gethash "enum" hash)
-                            :nullable (gethash "nullable" hash)
-                            :deprecated (gethash "deprecated" hash)))))
-        (cond
-          ((or (string= type "object")
-               (and (null type)
-                    (gethash "properties" hash)))
-           (apply #'make-instance 'object
-                  :required (gethash "required" hash)
-                  :properties (and (existsp "properties" hash)
-                                   (loop for key being each hash-key of (gethash "properties" hash)
-                                         using (hash-value value)
-                                         collect (make-instance 'property
-                                                                :name key
-                                                                :type (make-from-hash 'schema value))))
-                  :max-properties (gethash "maxProperties" hash)
-                  :min-properties (gethash "minProperties" hash)
-                  :additional-properties (if (typep (gethash "additionalProperties" hash) 'cl:boolean)
-                                             (gethash "additionalProperties" hash)
-                                             (make-from-hash 'schema (gethash "additionalProperties" hash)))
-                  common-args))
-          ((or (string= type "number")
-               (string= type "integer"))
-           (apply #'make-instance (cond
-                                    ((string= format "float") 'float)
-                                    ((string= format "double") 'double)
-                                    ((string= type "integer") 'integer)
-                                    (t 'number))
-                  :multiple-of (gethash "multipleOf" hash)
-                  :maximum (gethash "maximum" hash)
-                  :exclusive-maximum (gethash "exclusiveMaximum" hash)
-                  :minimum (gethash "minimum" hash)
-                  :exclusive-minimum (gethash "exclusiveMinimum" hash)
-                  common-args))
-          ((string= type "string")
-           (apply #'make-instance (cond
-                                    ((string= format "byte") 'byte)
-                                    ((string= format "binary") 'binary)
-                                    ((string= format "date") 'date)
-                                    ((string= format "date-time") 'date-time)
-                                    ((string= format "email") 'email)
-                                    ((string= format "uuid") 'uuid)
-                                    (t 'string))
-                  :max-length (gethash "maxLength" hash)
-                  :min-length (gethash "minLength" hash)
-                  :pattern (gethash "pattern" hash)
-                  common-args))
-          ((string= type "boolean")
-           (apply #'make-instance 'boolean common-args))
-          ((string= type "array")
-           (apply #'make-instance 'array
-                  :items (and (gethash "items" hash)
-                              (make-from-hash 'schema (gethash "items" hash)))
-                  :max-items (gethash "maxItems" hash)
-                  :min-items (gethash "minItems" hash)
-                  :unique-items (gethash "uniqueItems" hash)
-                  common-args))
-          ((or (gethash "oneOf" hash)
-               (gethash "anyOf" hash)
-               (gethash "allOf" hash))
-           (apply #'make-instance 'composition-schema
-                  :one-of (mapcar (lambda (subschema)
-                                    (make-from-hash 'schema subschema))
-                                  (gethash "oneOf" hash))
-                  :any-of (mapcar (lambda (subschema)
-                                    (make-from-hash 'schema subschema))
-                                  (gethash "anyOf" hash))
-                  :all-of (mapcar (lambda (subschema)
-                                    (make-from-hash 'schema subschema))
-                                  (gethash "allOf" hash))
-                  common-args))
-          ((gethash "not" hash)
-           (apply #'make-instance 'negative-schema
-                  :not (make-from-hash 'schema (gethash "not" hash))
-                  common-args))
-          (t
-           (apply #'make-instance 'schema common-args))))))
+(defmethod make-from ((schema <schema>))
+  (let ((type (->type schema))
+        (format (->format schema))
+        (common-args
+          (append (unless (eq (->default schema #1='#:default) #1#)
+                    (list :default (->default schema)))
+                  (list :enum (->enum schema)
+                        :nullable (get-nullable schema)
+                        :deprecated (get-deprecated schema)))))
+    (cond
+      ((or (string= type "object")
+           (and (null type) ; dead code?
+                (->properties schema)))
+       (apply #'make-instance 'object
+              :required (->required schema)
+              :properties (and (->properties schema)
+                               (loop for key being each hash-key of (->properties schema)
+                                     using (hash-value value)
+                                     collect (make-instance 'property
+                                                            :name key
+                                                            :type (make-from value))))
+              :max-properties (->max-properties schema)
+              :min-properties (->min-properties schema)
+              :additional-properties (if (typep (->additional-properties schema) 'cl:boolean)
+                                         (->additional-properties schema)
+                                         (make-from (->additional-properties schema)))
+              common-args))
+      ((or (string= type "number")
+           (string= type "integer"))
+       (apply #'make-instance (cond
+                                ((string= format "float") 'float)
+                                ((string= format "double") 'double)
+                                ((string= type "integer") 'integer)
+                                (t 'number))
+              :multiple-of (->multiple-of schema)
+              :maximum (->maximum schema)
+              :exclusive-maximum (->exclusive-maximum schema)
+              :minimum (->minimum schema)
+              :exclusive-minimum (->exclusive-minimum schema)
+              common-args))
+      ((string= type "string")
+       (apply #'make-instance (cond
+                                ((string= format "byte") 'byte)
+                                ((string= format "binary") 'binary)
+                                ((string= format "date") 'date)
+                                ((string= format "date-time") 'date-time)
+                                ((string= format "email") 'email)
+                                ((string= format "uuid") 'uuid)
+                                ((string= format "json") 'json)
+                                (t 'string))
+              :max-length (->max-length schema)
+              :min-length (->min-length schema)
+              :pattern (->pattern schema)
+              common-args))
+      ((string= type "boolean")
+       (apply #'make-instance 'boolean common-args))
+      ((string= type "array")
+       (apply #'make-instance 'array
+              :items (and (->items schema)
+                          (make-from (->items schema)))
+              :max-items (->max-items schema)
+              :min-items (->min-items schema)
+              :unique-items (->unique-items schema)
+              common-args))
+      ((or (->one-of schema)
+           (->any-of schema)
+           (->all-of schema))
+       (apply #'make-instance 'composition-schema
+              :one-of (mapcar (lambda (subschema)
+                                (make-from subschema))
+                              (->one-of schema))
+              :any-of (mapcar (lambda (subschema)
+                                (make-from subschema))
+                              (->any-of schema))
+              :all-of (mapcar (lambda (subschema)
+                                (make-from subschema))
+                              (->all-of schema))
+              common-args))
+      ((->not schema)
+       (apply #'make-instance 'negative-schema ; ERROR
+              :not (make-from (->not schema))
+              common-args))
+      (t
+       (apply #'make-instance 'schema common-args)))))
 
-(defmethod make-from-hash ((class (eql (find-class 'path-item))) hash)
-  (make-instance 'path-item
-                 :summary (gethash "summary" hash)
-                 :description (gethash "description" hash)
-                 :parameters (mapcar (lambda (param) (make-from-hash 'parameter param))
-                                     (gethash "parameters" hash))
-                 :get (let ((*current-method* :get))
-                        (make-from-hash 'operation (gethash "get" hash)))
-                 :put (let ((*current-method* :put))
-                        (make-from-hash 'operation (gethash "put" hash)))
-                 :post (let ((*current-method* :post))
-                         (make-from-hash 'operation (gethash "post" hash)))
-                 :delete (let ((*current-method* :delete))
-                           (make-from-hash 'operation (gethash "delete" hash)))
-                 :options (let ((*current-method* :options))
-                            (make-from-hash 'operation (gethash "options" hash)))
-                 :head (let ((*current-method* :head))
-                         (make-from-hash 'operation (gethash "head" hash)))
-                 :patch (let ((*current-method* :patch))
-                          (make-from-hash 'operation (gethash "patch" hash)))
-                 :trace (let ((*current-method* :trace))
-                          (make-from-hash 'operation (gethash "trace" hash)))))
+(defmethod make-from ((schema <path-item>))
+  (let ((*path-item-parameters* (->parameters schema)))
+    (make-instance 'path-item
+                   :summary (->summary schema)
+                   :description (->description schema)
+                   :parameters (mapcar #'make-from *path-item-parameters*)
+                   :get (when (->get schema) (make-from (->get schema)))
+                   :put (when (->put schema) (make-from (->put schema)))
+                   :post (when (->post schema) (make-from (->post schema)))
+                   :delete (when (->delete schema) (make-from (->delete schema)))
+                   :options (when (->options schema) (make-from (->options schema)))
+                   :head (when (->head schema) (make-from (->head schema)))
+                   :patch (when (->patch schema) (make-from (->patch schema)))
+                   :trace (when (->trace schema) (make-from (->trace schema))))))
 
-(defmethod make-from-hash ((class (eql (find-class 'operation))) hash)
-  (when hash
-    (make-instance 'operation
-                   :tags (gethash "tags" hash)
-                   :summary (gethash "summary" hash)
-                   :description (gethash "description" hash)
-                   :id (gethash "id" hash)
-                   :parameters (mapcar (lambda (param) (make-from-hash 'parameter param))
-                                       (gethash "parameters" hash))
-                   :request-body (and (gethash "requestBody" hash)
-                                      (make-from-hash 'request-body (gethash "requestBody" hash)))
-                   :responses (loop for key being each hash-key of (gethash* "responses" hash)
-                                    using (hash-value value)
-                                    collect (cons (princ-to-string key)
-                                                  (make-from-hash 'response value)))
-                   :deprecated (gethash "deprecated" hash))))
+(defun parameter= (parameter1 parameter2)
+  (check-type parameter1 <parameter>)
+  (check-type parameter2 <parameter>)
+  (and (equal (->name parameter1) (->name parameter2))
+       (equal (->in parameter1) (->in parameter2))))
 
-(defmethod make-from-hash ((class (eql (find-class 'response))) hash)
-  (if (gethash "$ref" hash)
-      (make-from-hash class (get-component-hash (gethash "$ref" hash)))
-      (make-instance 'response
-                     :description (gethash "description" hash)
-                     :headers (and (gethash "headers" hash)
-                                   (loop for key being each hash-key of (gethash "headers" hash)
-                                         using (hash-value value)
-                                         collect (cons key
-                                                       (make-from-hash 'header value))))
-                     :content (and (gethash "content" hash)
-                                   (loop for key being each hash-key of (gethash "content" hash)
-                                         using (hash-value value)
-                                         collect (cons key
-                                                       (and value
-                                                            (make-from-hash 'media-type value))))))))
+(defun merge-parameters (parameters1 parameters2)
+  (append (remove-if (lambda (parameter)
+                       (member parameter parameters2
+                               :test #'parameter=))
+                     parameters1)
+          parameters2))
 
-(defmethod make-from-hash ((class (eql (find-class 'request-body))) hash)
-  (if (gethash "$ref" hash)
-      (make-from-hash class (get-component-hash (gethash "$ref" hash)))
-      (make-instance 'request-body
-                     :description (gethash "description" hash)
-                     :content (loop for key being each hash-key of (gethash "content" hash)
-                                    using (hash-value value)
-                                    collect (cons key
-                                                  (make-from-hash 'media-type value)))
-                     :required (gethash "required" hash))))
+(defmethod make-from ((schema <operation>))
+  (make-instance 'operation
+                 :%schema schema
+                 :tags (->tags schema)
+                 :summary (->summary schema)
+                 :description (->description schema)
+                 :parameters (mapcar #'make-from
+                                     (merge-parameters *path-item-parameters*
+                                                       (->parameters schema)))
+                 :request-body (and (->request-body schema)
+                                    (make-from (->request-body schema)))
+                 :responses (loop :for (status-code . response) :in (->field* (->responses schema))
+                                  :collect (cons status-code (make-from response)))
+                 :deprecated (->deprecated schema)))
 
-(defmethod make-from-hash ((class (eql (find-class 'media-type))) hash)
+(defmethod make-from ((schema <response>))
+  (make-instance 'response
+                 :description (->description schema)
+                 :headers (and (->headers schema)
+                               (loop for key being each hash-key of (->headers schema)
+                                     using (hash-value value)
+                                     collect (cons key
+                                                   (make-from value))))
+                 :content (and (->content schema)
+                               (loop for key being each hash-key of (->content schema)
+                                     using (hash-value value)
+                                     collect (cons key
+                                                   (and value
+                                                        (make-from value)))))))
+
+(defmethod make-from ((schema <request-body>))
+  (make-instance 'request-body
+                 :description (->description schema)
+                 :content (loop for key being each hash-key of (->content schema)
+                                using (hash-value value)
+                                collect (cons key
+                                              (make-from value)))
+                 :required (->required schema)))
+
+(defmethod make-from ((schema <media-type>))
   (make-instance 'media-type
-                 :schema (and (gethash "schema" hash)
-                              (make-from-hash 'schema (gethash "schema" hash)))
-                 :encoding (and (gethash "encoding" hash)
-                                (loop for key being each hash-key of (gethash "encoding" hash)
+                 :schema (and (->schema schema)
+                              (make-from (->schema schema)))
+                 :encoding (and (->encoding schema)
+                                (loop for key being each hash-key of (->encoding schema)
                                       using (hash-value value)
                                       collect (cons key
-                                                    (make-from-hash 'encoding value))))))
+                                                    (make-from value))))))
 
-(defmethod make-from-hash ((class (eql (find-class 'encoding))) hash)
+(defmethod make-from ((schema <encoding>))
   (apply #'make-instance 'encoding
-         :content-type (gethash "contentType" hash)
-         :headers (and (gethash "headers" hash)
-                       (loop for key being each hash-key of (gethash "headers" hash)
+         :content-type (->content-type schema)
+         :headers (and (->headers schema)
+                       (loop for key being each hash-key of (->headers schema)
                              using (hash-value value)
                              collect (cons key
-                                           (make-from-hash 'header value))))
-         :allow-reserved (gethash "allowReserved" hash)
-         (append (and (existsp "style" hash)
-                      `(:style ,(gethash "style" hash)))
-                 (and (existsp "explode" hash)
-                      `(:expldoe ,(gethash "explode" hash))))))
+                                           (make-from value))))
+         :allow-reserved (->allow-reserved schema)
+         (append (and (->style schema)
+                      `(:style ,(->style schema)))
+                 (and (->explode schema)
+                      `(:expldoe ,(->explode schema))))))
 
-(defmethod make-from-hash ((class (eql (find-class 'header))) hash)
-  (if (gethash "$ref" hash)
-      (make-from-hash class (get-component-hash (gethash "$ref" hash)))
-      (make-instance 'header
-                     :required (gethash "required" hash)
-                     :schema (and (gethash "schema" hash)
-                                  (make-from-hash 'schema (gethash "schema" hash)))
-                     :explode (gethash "explode" hash))))
+(defmethod make-from ((schema <header>))
+  (make-instance 'header
+                 :required (->required schema)
+                 :schema (and (->schema schema)
+                              (make-from (->schema schema)))
+                 :explode (->explode schema)))
 
-(defvar *doc*)
+(defun get-paths-object (openapi)
+  (loop :for (path . path-item) :in (->field* (->paths openapi))
+        :collect (cons path
+                       (make-from path-item))))
 
-(defun get-component-hash (key &optional (hash *doc*))
-  (reduce (lambda (current path)
-            (or (gethash path current)
-                (error "No component: ~S" key)))
-          (rest (ppcre:split "/" key))
-          :initial-value hash))
-
-(defun get-paths-object (parsed-hash)
-  (let ((*doc* parsed-hash))
-    (loop for path-rule being each hash-key of (gethash "paths" parsed-hash)
-          using (hash-value path-item)
-          collect (cons path-rule
-                        (let ((*current-path-rule* path-rule))
-                          (make-from-hash 'path-item path-item))))))
-
-(defun get-schemas-object (parsed-hash)
-  (let ((*doc* parsed-hash))
-    (when-let* ((components (gethash "components" parsed-hash))
-                (schemas (gethash "schemas" components)))
-      (loop for schema-name being each hash-key of schemas
-            using (hash-value schema-value)
-            collect (cons schema-name (make-from-hash 'schema schema-value))))))
+(defun get-schemas-object (openapi)
+  (when-let* ((components (->components openapi))
+              (schemas (->schemas components)))
+    (loop for schema-name being each hash-key of schemas
+          using (hash-value schema-value)
+          collect (cons schema-name (make-from schema-value)))))
 
 (defstruct spec
-  (document nil :type hash-table)
+  openapi
   router
   schemas)
 
 (defun spec-version (spec)
-  (values (gethash "openapi" (spec-document spec))))
+  (->openapi (spec-openapi spec)))
 
 (defun load-from-file (file)
-  (let ((document (open-yaml-file file)))
-    (make-spec :document document
-               :router (make-router (get-paths-object document))
-               :schemas (get-schemas-object document))))
+  (let ((openapi (openapi-parser:parse-file file))
+        (*path-item-parameters* '()))
+    (make-spec :openapi openapi
+               :router (make-router (get-paths-object openapi))
+               :schemas (get-schemas-object openapi))))

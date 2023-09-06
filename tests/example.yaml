@@ -1,4 +1,7 @@
 openapi: '3.0.1'
+info:
+  title: Simple API overview
+  version: 2.0.0
 paths:
   /foo:
     post:
@@ -9,6 +12,39 @@ paths:
               properties:
                 foo:
                   type: string
+                json_string:
+                  type: string
+                  format: json
       responses:
         '204':
           description: Successfully created a new user.
+  /foo/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+    get:
+      parameters:
+        - name: a
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /bar:
+    get:
+      parameters:
+        - name: q1
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: q2
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: OK

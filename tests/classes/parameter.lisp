@@ -42,7 +42,7 @@
                                                    :schema (schema (array :items 'string))
                                                    :style "form"
                                                    :explode nil)))
-              '(("name"))))
+              '()))
   (ok (signals (parse-query-string "id=abc,opq,xyz" (list))
                'parameter-validation-failed))
 
@@ -56,7 +56,15 @@
                                                     :schema (schema (array :items 'string))
                                                     :style "form"
                                                     :expldoe nil)))
-               'parameter-validation-failed)))
+               'parameter-validation-failed))
+
+  (testing "nullable parameter"
+    (ok (equal '(("foo" . nil))
+               (parse-query-string "foo"
+                                   (list (make-instance 'parameter
+                                                        :name "foo"
+                                                        :in "query"
+                                                        :schema (schema (string :nullable t)))))))))
 
 (deftest parse-headers-tests
   (ok (equalp (parse-headers
