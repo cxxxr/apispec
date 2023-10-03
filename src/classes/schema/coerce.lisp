@@ -5,7 +5,8 @@
         #:apispec/utils
         #:parse-number)
   (:import-from #:apispec/classes/schema/core
-                #:parse-schema-definition)
+                #:parse-schema-definition
+                #:almost-integer)
   (:import-from #:apispec/classes/schema/validate
                 #:validate-data)
   (:import-from #:apispec/classes/schema/errors
@@ -62,7 +63,7 @@
 
 (defmethod coerce-data ((value cl:number) (schema number))
   (handler-case (typecase schema
-                  (integer (coerce value 'cl:integer))
+                  (integer (coerce value 'almost-integer))
                   (float (coerce value 'cl:float))
                   (double (coerce value 'cl:double-float))
                   (otherwise value))
