@@ -49,6 +49,7 @@
            #:json
 
            #:boolean
+           #:almost-integer
 
            #:array
            #:array-items
@@ -156,6 +157,16 @@
 
   (call-next-method))
 
+(defun check-almost-integer-p (number)
+  (or (integerp number)
+      (multiple-value-bind (n decimal)
+          (truncate number)
+        (declare (ignore n))
+        (= decimal 0))))
+
+(deftype almost-integer ()
+  `(satisfies check-almost-integer-p))
+
 (defun make-number-schema (class &rest initargs)
   (apply #'make-instance (find-schema class)
          (match initargs
@@ -172,7 +183,7 @@
      ,@(loop for type in '(number cl:number
                            float cl:float
                            double cl-user::double
-                           integer cl:integer)
+                           integer apispec/classes/schema/core:almost-integer)
              collect `(defmethod make-schema ((class (eql ',type)) &rest initargs)
                         (apply #'make-number-schema class initargs))))
 
