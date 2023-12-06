@@ -26,3 +26,8 @@
   (ok (typep (list (make-person :name "Eitaro"))
              '(proper-list person)))
   (ng (typep '(1) '(proper-list person))))
+
+(deftest uuid-format-p-tests
+  (ok (uuid-format-p "f7db18a1-e269-42bb-8a91-53e80a3f0760"))
+  (ok (uuid-format-p "37780C98-EEE4-49EC-997C-C75D3B36A0EC"))
+  (ng (uuid-format-p "invalid-uuid")))
