@@ -123,7 +123,7 @@
     t))
 
 (defun uuid-format-p (string)
-  (when (ppcre:scan "\\A[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\\z"
+  (when (ppcre:scan "\\A[a-fA-F0-9]{8}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{12}\\z"
                     string)
     t))
 
