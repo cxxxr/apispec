@@ -63,7 +63,7 @@
 
 (defmethod coerce-data ((value cl:number) (schema number))
   (handler-case (typecase schema
-                  (integer (coerce value 'almost-integer))
+                  (integer (coerce-to-integer value))
                   (float (coerce value 'cl:float))
                   (double (coerce value 'cl:double-float))
                   (otherwise value))

@@ -50,6 +50,7 @@
 
            #:boolean
            #:almost-integer
+           #:coerce-to-integer
 
            #:array
            #:array-items
@@ -166,6 +167,12 @@
 
 (deftype almost-integer ()
   `(satisfies check-almost-integer-p))
+
+(defun coerce-to-integer (value)
+  (check-type value almost-integer)
+  (etypecase value
+    (cl:integer value)
+    (cl:float (truncate value))))
 
 (defun make-number-schema (class &rest initargs)
   (apply #'make-instance (find-schema class)
